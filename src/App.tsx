@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import "./App.css";
+import {
+  savePlayerScore,
+  getTopScores,
+  getTopScoresByTime,
+  PlayerScore,
+} from "./firebase";
 
 interface Employee {
   id: number;
@@ -232,6 +238,10 @@ function App() {
     { name: string; score: number; time: number }[]
   >([]);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
+
+  const [globalLeaderboard, setGlobalLeaderboard] = useState<PlayerScore[]>([]);
+  const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(false);
+  const [isLoadingScores, setIsLoadingScores] = useState(false);
   const [gameSettings, setGameSettings] = useState<GameSettings>({
     bossName: "",
     employeeNames: [],
@@ -480,6 +490,50 @@ function App() {
     }, 5000); // 5 seconds duration
 
     setPowerUpTimer(timer);
+  };
+
+  // Global leaderboard functions
+
+  const loadGlobalLeaderboard = async () => {
+    setIsLoadingScores(true);
+    try {
+      console.log("Loading global leaderboard...");
+      const topScores = await getTopScores(10);
+      console.log("Top scores loaded:", topScores);
+      setGlobalLeaderboard(topScores);
+    } catch (error) {
+      console.error("Error loading leaderboard:", error);
+      // Show error message to user
+      alert("Liderlik tablosu yüklenirken hata oluştu. Lütfen tekrar deneyin.");
+    } finally {
+      setIsLoadingScores(false);
+    }
+  };
+
+  const saveScoreToFirebase = async () => {
+    if (!gameSettings.bossName.trim()) {
+      console.log("No boss name, skipping Firebase save");
+      return;
+    }
+
+    try {
+      const gameTime = (Date.now() - gameStartTime) / 1000;
+      const playerData: PlayerScore = {
+        playerName: gameSettings.bossName.trim(),
+        score,
+        time: gameTime,
+        difficulty: gameSettings.difficulty,
+        timestamp: Date.now(),
+        combo: combo,
+        achievements: achievements,
+      };
+
+      console.log("App: Attempting to save score to Firebase:", playerData);
+      await savePlayerScore(playerData);
+      console.log("App: Score saved to Firebase successfully!");
+    } catch (error) {
+      console.error("App: Error saving score to Firebase:", error);
+    }
   };
 
   // Difficulty settings for employee movement
@@ -958,7 +1012,7 @@ function App() {
         unlockAchievement("Patron Kralı");
       }
 
-      // Update leaderboard
+      // Update local leaderboard
       const newEntry = {
         name: gameSettings.bossName,
         score,
@@ -972,6 +1026,9 @@ function App() {
         localStorage.setItem("saksici-leaderboard", JSON.stringify(updated));
         return updated;
       });
+
+      // Save to Firebase
+      saveScoreToFirebase();
 
       // Delay the victory sound slightly to let the last hit sound finish
       setTimeout(() => {
@@ -988,6 +1045,87 @@ function App() {
 
   return (
     <div className={`app ${screenShake ? "screen-shake" : ""}`}>
+      {/* Global Leaderboard Modal */}
+      <AnimatePresence>
+        {showGlobalLeaderboard && (
+          <motion.div
+            className="global-leaderboard-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowGlobalLeaderboard(false)}
+          >
+            <motion.div
+              className="global-leaderboard-content"
+              initial={{ scale: 0.8, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, y: 50 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2>🏆 Global Liderlik Tablosu</h2>
+
+              {isLoadingScores ? (
+                <div className="loading-scores">
+                  <div className="loading-spinner">🏺</div>
+                  <p>Skorlar yükleniyor...</p>
+                  <p style={{ fontSize: "0.9rem", opacity: 0.7 }}>
+                    İlk kez yükleniyorsa biraz zaman alabilir
+                  </p>
+                </div>
+              ) : (
+                <div className="leaderboard-list">
+                  {globalLeaderboard.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "20px" }}>
+                      <p>🏆 Henüz skor bulunmuyor</p>
+                      <p
+                        style={{
+                          fontSize: "0.9rem",
+                          opacity: 0.7,
+                          marginTop: "10px",
+                        }}
+                      >
+                        İlk oyunu oynayarak liderlik tablosuna girin!
+                      </p>
+                    </div>
+                  ) : (
+                    globalLeaderboard.map((player, index) => (
+                      <div key={player.id} className="leaderboard-item">
+                        <div className="rank">#{index + 1}</div>
+                        <div className="player-info">
+                          <div className="player-name">{player.playerName}</div>
+                          <div className="player-stats">
+                            Skor: {player.score} | Süre:{" "}
+                            {player.time.toFixed(1)}s | Zorluk:{" "}
+                            {player.difficulty}
+                          </div>
+                        </div>
+                        <div className="achievements">
+                          {player.achievements
+                            .slice(0, 3)
+                            .map((achievement, i) => (
+                              <span key={i} className="achievement-badge">
+                                🏆
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              <motion.button
+                className="close-btn"
+                onClick={() => setShowGlobalLeaderboard(false)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Kapat
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {showConfetti && (
           <motion.div
@@ -1089,6 +1227,19 @@ function App() {
             </motion.div>
           )}
           <div className="controls">
+            <motion.button
+              className="global-leaderboard-header-btn"
+              onClick={() => {
+                loadGlobalLeaderboard();
+                setShowGlobalLeaderboard(true);
+              }}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400 }}
+            >
+              🏆 Global
+            </motion.button>
+
             {!gameStarted ? (
               <motion.button
                 className="start-btn"
@@ -1481,18 +1632,36 @@ function App() {
               fırlat! 🏺
             </p>
             <p>Kafalarına isabet ettir ve puanını artır! 🎯</p>
-            <motion.button
-              className="start-btn"
-              onClick={openSettings}
-              disabled={isLoading}
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              Oyunu Başlat! 🎯
-            </motion.button>
+            <div className="welcome-buttons">
+              <motion.button
+                className="start-btn"
+                onClick={openSettings}
+                disabled={isLoading}
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                Oyunu Başlat! 🎯
+              </motion.button>
+
+              <motion.button
+                className="leaderboard-btn"
+                onClick={() => {
+                  loadGlobalLeaderboard();
+                  setShowGlobalLeaderboard(true);
+                }}
+                disabled={isLoading}
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                🏆 Global Liderlik Tablosu
+              </motion.button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

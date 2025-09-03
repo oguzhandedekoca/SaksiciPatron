@@ -568,6 +568,14 @@ body {
   opacity: 0.9;
 }
 
+.welcome-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: center;
+  margin-top: 20px;
+}
+
 /* Loading Overlay */
 .loading-overlay {
   position: fixed;
@@ -643,6 +651,10 @@ body {
   
   .welcome-screen p {
     font-size: 1rem;
+  }
+  
+  .welcome-buttons {
+    gap: 12px;
   }
   
   .power-bar {
@@ -1193,5 +1205,313 @@ body {
   .achievement-notification {
     padding: 15px 20px;
     top: 80px;
+  }
+}
+
+/* Login Screen */
+.login-screen {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(30, 30, 60, 0.9));
+  color: white;
+  padding: 50px 70px;
+  border-radius: 25px;
+  text-align: center;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.7),
+    0 0 40px rgba(255, 107, 107, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  z-index: 10000 !important;
+  border: 3px solid #ff6b6b;
+  backdrop-filter: blur(20px);
+  width: 90vw;
+  max-width: 500px;
+  height: auto;
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.login-screen h2 {
+  font-size: 2.5rem;
+  margin-bottom: 30px;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
+}
+
+.login-content {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  align-items: center;
+}
+
+.login-content h3 {
+  font-size: 1.5rem;
+  color: #ffd700;
+  margin-bottom: 10px;
+}
+
+.login-content input {
+  width: 100%;
+  padding: 15px 20px;
+  border: 2px solid #ff6b6b;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1.2rem;
+  backdrop-filter: blur(10px);
+  text-align: center;
+}
+
+.login-content input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.login-content input:focus {
+  outline: none;
+  border-color: #ffd700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.login-btn, .leaderboard-btn {
+  padding: 15px 30px;
+  border: 2px solid;
+  border-radius: 15px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  min-width: 200px;
+}
+
+.login-btn {
+  border-color: #4CAF50;
+  background: rgba(76, 175, 80, 0.2);
+  color: white;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.4);
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+}
+
+.login-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.leaderboard-btn {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.2);
+  color: white;
+}
+
+.leaderboard-btn:hover {
+  background: rgba(255, 215, 0, 0.4);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+/* Global Leaderboard Modal */
+.global-leaderboard-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(5px);
+}
+
+.global-leaderboard-content {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(30, 30, 60, 0.9));
+  color: white;
+  padding: 30px 40px;
+  border-radius: 25px;
+  text-align: center;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.7),
+    0 0 40px rgba(255, 107, 107, 0.4);
+  border: 3px solid #ff6b6b;
+  backdrop-filter: blur(20px);
+  width: 90vw;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.global-leaderboard-content h2 {
+  font-size: 2rem;
+  margin-bottom: 25px;
+  color: #ffd700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.loading-scores {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  padding: 40px;
+}
+
+.loading-scores .loading-spinner {
+  font-size: 3rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  border: 2px solid rgba(255, 107, 107, 0.3);
+  transition: all 0.3s ease;
+}
+
+.leaderboard-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #ffd700;
+  transform: translateY(-2px);
+}
+
+.rank {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #ffd700;
+  min-width: 50px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.player-info {
+  flex: 1;
+  text-align: left;
+}
+
+.player-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #4ecdc4;
+  margin-bottom: 5px;
+}
+
+.player-stats {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.achievements {
+  display: flex;
+  gap: 5px;
+}
+
+.achievement-badge {
+  font-size: 1.2rem;
+  animation: achievement-bounce 1s ease-in-out infinite;
+}
+
+.close-btn {
+  padding: 12px 25px;
+  border: 2px solid #666;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.close-btn:hover {
+  border-color: #999;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Global Leaderboard Header Button */
+.global-leaderboard-header-btn {
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: linear-gradient(45deg, #ffd700, #ffed4e);
+  color: #333;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+.global-leaderboard-header-btn:hover {
+  background: linear-gradient(45deg, #ffed4e, #ffd700);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+}
+
+@media (max-width: 768px) {
+  .login-screen {
+    padding: 30px 40px;
+    width: 95vw;
+  }
+  
+  .login-screen h2 {
+    font-size: 2rem;
+  }
+  
+  .login-content input {
+    font-size: 1rem;
+    padding: 12px 15px;
+  }
+  
+  .login-btn, .leaderboard-btn {
+    padding: 12px 25px;
+    font-size: 1rem;
+    min-width: 180px;
+  }
+  
+  .global-leaderboard-content {
+    padding: 20px 25px;
+    width: 95vw;
+  }
+  
+  .global-leaderboard-content h2 {
+    font-size: 1.5rem;
+  }
+  
+  .leaderboard-item {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+  
+  .player-info {
+    text-align: center;
+  }
+  
+  .global-leaderboard-header-btn {
+    padding: 8px 15px;
+    font-size: 0.8rem;
   }
 }
