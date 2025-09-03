@@ -66,10 +66,10 @@ export const testFirebaseConnection = async () => {
   } catch (error) {
     console.error("Firebase connection test failed:", error);
     console.error("Error details:", {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
+      name: (error as any).name,
+      message: (error as any).message,
+      code: (error as any).code,
+      stack: (error as any).stack,
     });
     return false;
   }
@@ -96,10 +96,10 @@ export const savePlayerScore = async (playerData: PlayerScore) => {
   } catch (error) {
     console.error("Firebase: Error saving score: ", error);
     console.error("Firebase: Error details:", {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
+      name: (error as any).name,
+      message: (error as any).message,
+      code: (error as any).code,
+      stack: (error as any).stack,
     });
     throw error;
   }
@@ -130,10 +130,10 @@ export const getTopScores = async (limitCount: number = 10) => {
   } catch (error) {
     console.error("Firebase: Error getting scores: ", error);
     console.error("Firebase: Error details:", {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
+      name: (error as any).name,
+      message: (error as any).message,
+      code: (error as any).code,
+      stack: (error as any).stack,
     });
     throw error;
   }

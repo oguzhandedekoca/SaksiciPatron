@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import "./App.css";
-import {
-  savePlayerScore,
-  getTopScores,
-  getTopScoresByTime,
-  PlayerScore,
-} from "./firebase";
+import { savePlayerScore, getTopScores, type PlayerScore } from "./firebase";
 
 interface Employee {
   id: number;
@@ -447,7 +442,7 @@ function App() {
       setCombo(0);
     }, 3000); // 3 seconds to maintain combo
 
-    setComboTimer(timer);
+    setComboTimer(timer as unknown as number);
 
     if (newCombo >= 2) {
       playComboSound(newCombo);
@@ -489,7 +484,7 @@ function App() {
       setActivePowerUp(null);
     }, 5000); // 5 seconds duration
 
-    setPowerUpTimer(timer);
+    setPowerUpTimer(timer as unknown as number);
   };
 
   // Global leaderboard functions
@@ -1101,13 +1096,11 @@ function App() {
                           </div>
                         </div>
                         <div className="achievements">
-                          {player.achievements
-                            .slice(0, 3)
-                            .map((achievement, i) => (
-                              <span key={i} className="achievement-badge">
-                                🏆
-                              </span>
-                            ))}
+                          {player.achievements.slice(0, 3).map((_, i) => (
+                            <span key={i} className="achievement-badge">
+                              🏆
+                            </span>
+                          ))}
                         </div>
                       </div>
                     ))
@@ -1560,7 +1553,6 @@ function App() {
               >
                 <h3>🏆 En İyi 10 Skor</h3>
                 <div className="leaderboard-list">
-                  {console.log("Victory screen leaderboard:", leaderboard)}
                   {leaderboard.slice(0, 10).map((entry, index) => (
                     <div
                       key={index}
