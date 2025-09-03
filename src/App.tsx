@@ -544,11 +544,39 @@ function App() {
   };
 
   const createEmployeesFromSettings = () => {
-    const employeePositions = EMPLOYEES_DATA.slice(
-      0,
-      gameSettings.employeeNames.length
-    );
-    return employeePositions.map((pos, index) => ({
+    const employeeCount = gameSettings.employeeNames.length;
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const minDistance = 120; // Minimum mesafe (px)
+    const maxAttempts = 50; // Maksimum deneme sayısı
+
+    // Ekranın her yerine random dağıtım
+    const randomPositions = [];
+
+    for (let i = 0; i < employeeCount; i++) {
+      let attempts = 0;
+      let validPosition = false;
+      let x, y;
+
+      // Çalışanların birbirine çok yakın olmaması için kontrol
+      while (!validPosition && attempts < maxAttempts) {
+        x = Math.random() * (screenWidth - 200) + 100;
+        y = Math.random() * (screenHeight - 300) + 100;
+
+        // Diğer çalışanlarla minimum mesafe kontrolü
+        validPosition = randomPositions.every((pos) => {
+          const distance = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
+          return distance >= minDistance;
+        });
+
+        attempts++;
+      }
+
+      // Eğer geçerli pozisyon bulunamazsa, en son denenen pozisyonu kullan
+      randomPositions.push({ x, y });
+    }
+
+    return randomPositions.map((pos, index) => ({
       id: index,
       x: pos.x,
       y: pos.y,
@@ -941,7 +969,7 @@ function App() {
                   repeat: Infinity,
                 }}
               >
-                🎉 MÜKEMMEL! TÜM ÇALIŞANLARI VURDUN! 🎉
+                🎉 Hakkını verdin! TÜM ÇALIŞANLARI VURDUN! 🎉
                 <br />
                 Toplam Skor: {score}
                 <br />
