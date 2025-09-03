@@ -221,6 +221,17 @@ function App() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pots, setPots] = useState<Pot[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
+  const [combo, setCombo] = useState(0);
+  const [comboTimer, setComboTimer] = useState<number | null>(null);
+  const [achievements, setAchievements] = useState<string[]>([]);
+  const [showAchievement, setShowAchievement] = useState<string | null>(null);
+  const [powerUps, setPowerUps] = useState<any[]>([]);
+  const [activePowerUp, setActivePowerUp] = useState<string | null>(null);
+  const [powerUpTimer, setPowerUpTimer] = useState<number | null>(null);
+  const [leaderboard, setLeaderboard] = useState<
+    { name: string; score: number; time: number }[]
+  >([]);
+  const [gameStartTime, setGameStartTime] = useState<number>(0);
   const [gameSettings, setGameSettings] = useState<GameSettings>({
     bossName: "",
     employeeNames: [],
@@ -386,6 +397,91 @@ function App() {
     }
   };
 
+  const playComboSound = (comboLevel: number) => {
+    try {
+      const audioContext = createAudioContext();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      const baseFreq = 800 + comboLevel * 200;
+      oscillator.frequency.setValueAtTime(baseFreq, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(
+        baseFreq * 1.5,
+        audioContext.currentTime + 0.2
+      );
+
+      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.2
+      );
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    } catch {
+      console.log("Audio not supported");
+    }
+  };
+
+  // Combo system
+  const handleCombo = () => {
+    const newCombo = combo + 1;
+    setCombo(newCombo);
+
+    if (comboTimer) clearTimeout(comboTimer);
+
+    const timer = setTimeout(() => {
+      setCombo(0);
+    }, 3000); // 3 seconds to maintain combo
+
+    setComboTimer(timer);
+
+    if (newCombo >= 2) {
+      playComboSound(newCombo);
+    }
+
+    return Math.min(newCombo, 5); // Max 5x multiplier
+  };
+
+  // Achievement system
+  const unlockAchievement = (achievement: string) => {
+    if (!achievements.includes(achievement)) {
+      setAchievements((prev) => [...prev, achievement]);
+      setShowAchievement(achievement);
+      setTimeout(() => setShowAchievement(null), 3000);
+    }
+  };
+
+  // Power-up system
+  const spawnPowerUp = () => {
+    if (powerUps.length < 2 && Math.random() < 0.3) {
+      const powerUpTypes = ["rapid", "bigPot", "multiShot"];
+      const type =
+        powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+      const newPowerUp = {
+        id: Date.now(),
+        type,
+        x: Math.random() * (window.innerWidth - 100) + 50,
+        y: Math.random() * (window.innerHeight - 200) + 100,
+      };
+      setPowerUps((prev) => [...prev, newPowerUp]);
+    }
+  };
+
+  const activatePowerUp = (type: string) => {
+    setActivePowerUp(type);
+    if (powerUpTimer) clearTimeout(powerUpTimer);
+
+    const timer = setTimeout(() => {
+      setActivePowerUp(null);
+    }, 5000); // 5 seconds duration
+
+    setPowerUpTimer(timer);
+  };
+
   // Difficulty settings for employee movement
   const getDifficultySettings = (difficulty: string) => {
     switch (difficulty) {
@@ -400,8 +496,14 @@ function App() {
     }
   };
 
-  // Cleanup on unmount
+  // Cleanup on unmount and load leaderboard
   useEffect(() => {
+    // Load leaderboard from localStorage
+    const savedLeaderboard = localStorage.getItem("saksici-leaderboard");
+    if (savedLeaderboard) {
+      setLeaderboard(JSON.parse(savedLeaderboard));
+    }
+
     return () => {
       if (chargingAnimationId.current) {
         cancelAnimationFrame(chargingAnimationId.current);
@@ -535,12 +637,34 @@ function App() {
 
               if (distance < 900) {
                 // 30px radius squared
-                setScore((prev) => prev + 1);
+                const comboMultiplier = handleCombo();
+                const basePoints = 1;
+                const criticalHit = Math.random() < 0.2; // 20% critical hit chance
+                const points =
+                  basePoints * comboMultiplier * (criticalHit ? 2 : 1);
+
+                setScore((prev) => prev + points);
                 setShowConfetti(true);
                 setScreenShake(true);
 
                 // Play hit sound
                 playHitSound();
+
+                // Check achievements
+                if (score === 0) {
+                  unlockAchievement("İlk Kan");
+                }
+                if (comboMultiplier >= 5) {
+                  unlockAchievement("Combo Master");
+                }
+                if (criticalHit) {
+                  unlockAchievement("Keskin Nişancı");
+                }
+
+                // Spawn power-up occasionally
+                if (Math.random() < 0.15) {
+                  spawnPowerUp();
+                }
 
                 // Boss celebration
                 bossControls.start({
@@ -782,12 +906,20 @@ function App() {
     setShowConfetti(false);
     setPowerLevel(0);
     setShowPowerBar(false);
+    setCombo(0);
+    setPowerUps([]);
+    setActivePowerUp(null);
+    setGameStartTime(Date.now());
 
     // Clear any charging animation
     if (chargingAnimationId.current) {
       cancelAnimationFrame(chargingAnimationId.current);
       chargingAnimationId.current = null;
     }
+
+    // Clear timers
+    if (comboTimer) clearTimeout(comboTimer);
+    if (powerUpTimer) clearTimeout(powerUpTimer);
 
     setTimeout(() => {
       setEmployees(createEmployeesFromSettings());
@@ -799,6 +931,7 @@ function App() {
     if (gameSettings.bossName && gameSettings.employeeNames.length > 0) {
       setIsLoading(true);
       setShowPowerBar(false);
+      setGameStartTime(Date.now());
       setTimeout(() => {
         setEmployees(createEmployeesFromSettings());
         setGameStarted(true);
@@ -818,12 +951,40 @@ function App() {
   // Play victory sound when all employees are hit
   useEffect(() => {
     if (allEmployeesHit && gameStarted) {
+      const gameTime = (Date.now() - gameStartTime) / 1000;
+
+      // Check time-based achievements
+      if (gameTime <= 60) {
+        unlockAchievement("Patron Kralı");
+      }
+
+      // Update leaderboard
+      const newEntry = {
+        name: gameSettings.bossName,
+        score,
+        time: gameTime,
+      };
+
+      setLeaderboard((prev) => {
+        const updated = [...prev, newEntry]
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 5); // Keep top 5
+        localStorage.setItem("saksici-leaderboard", JSON.stringify(updated));
+        return updated;
+      });
+
       // Delay the victory sound slightly to let the last hit sound finish
       setTimeout(() => {
         playVictorySound();
       }, 500);
     }
-  }, [allEmployeesHit, gameStarted]);
+  }, [
+    allEmployeesHit,
+    gameStarted,
+    score,
+    gameStartTime,
+    gameSettings.bossName,
+  ]);
 
   return (
     <div className={`app ${screenShake ? "screen-shake" : ""}`}>
@@ -899,6 +1060,34 @@ function App() {
           >
             Skor: {score}
           </motion.span>
+
+          {combo > 1 && (
+            <motion.div
+              className="combo-display"
+              initial={{ scale: 0, y: -20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0, y: -20 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              COMBO x{combo}!
+            </motion.div>
+          )}
+
+          {activePowerUp && (
+            <motion.div
+              className="power-up-display"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+            >
+              🚀{" "}
+              {activePowerUp === "rapid"
+                ? "HIZLI ATIŞ"
+                : activePowerUp === "bigPot"
+                ? "BÜYÜK SAKSI"
+                : "ÇOKLU ATIŞ"}
+            </motion.div>
+          )}
           <div className="controls">
             {!gameStarted ? (
               <motion.button
@@ -1149,6 +1338,62 @@ function App() {
               transition={{ duration: 1, ease: "easeOut" }}
             />
           ))}
+        </AnimatePresence>
+
+        {/* Power-ups */}
+        <AnimatePresence>
+          {powerUps.map((powerUp) => (
+            <motion.div
+              key={powerUp.id}
+              className="power-up"
+              style={{
+                left: powerUp.x,
+                top: powerUp.y,
+              }}
+              initial={{ scale: 0, rotate: 0 }}
+              animate={{ scale: 1, rotate: 360 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              onClick={() => {
+                activatePowerUp(powerUp.type);
+                setPowerUps((prev) => prev.filter((p) => p.id !== powerUp.id));
+              }}
+            >
+              <div className="power-up-icon">
+                {powerUp.type === "rapid"
+                  ? "⚡"
+                  : powerUp.type === "bigPot"
+                  ? "🪣"
+                  : "🎯"}
+              </div>
+              <div className="power-up-label">
+                {powerUp.type === "rapid"
+                  ? "Hızlı"
+                  : powerUp.type === "bigPot"
+                  ? "Büyük"
+                  : "Çoklu"}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {/* Achievement Notification */}
+        <AnimatePresence>
+          {showAchievement && (
+            <motion.div
+              className="achievement-notification"
+              initial={{ scale: 0, y: -100 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0, y: -100 }}
+              transition={{ type: "spring", stiffness: 200 }}
+            >
+              <div className="achievement-icon">🏆</div>
+              <div className="achievement-text">
+                <div className="achievement-title">BAŞARIM!</div>
+                <div className="achievement-name">{showAchievement}</div>
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
 
         <AnimatePresence>
