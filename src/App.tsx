@@ -50,7 +50,7 @@ function App() {
   const chargingStartTime = useRef<number>(0);
   const chargingAnimationId = useRef<number | null>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(0);
   const bossControls = useAnimation();
 
   // Cleanup on unmount
@@ -484,20 +484,6 @@ function App() {
         onMouseUp={handleMouseUp}
         onContextMenu={handleContextMenu}
       >
-        <AnimatePresence>
-          {gameStarted && !allEmployeesHit && (
-            <motion.div
-              className="instructions"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.5 }}
-            >
-              Basılı tutup güç topla, bırakıp fırlat! 🎯
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Power Meter */}
         {isCharging && (
           <motion.div
