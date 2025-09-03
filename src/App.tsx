@@ -1278,7 +1278,9 @@ function App() {
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             >
-              🏺
+              <div className="pot-plant">🌿</div>
+              <div className="pot-soil">🟫</div>
+              <div className="pot-body">🪴</div>
             </motion.div>
           </motion.div>
         )}
