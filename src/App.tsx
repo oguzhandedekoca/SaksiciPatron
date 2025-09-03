@@ -13,6 +13,12 @@ interface Employee {
   hitCount: number;
 }
 
+interface GameSettings {
+  bossName: string;
+  employeeNames: string[];
+  difficulty: "kolay" | "orta" | "zor";
+}
+
 interface Pot {
   id: number;
   x: number;
@@ -34,11 +40,167 @@ const EMPLOYEES_DATA = [
   { name: "Elif", x: 350, y: 460 },
 ];
 
+// Settings Screen Component
+const SettingsScreen: React.FC<{
+  gameSettings: GameSettings;
+  setGameSettings: React.Dispatch<React.SetStateAction<GameSettings>>;
+  onStartGame: () => void;
+  onBack: () => void;
+}> = ({ gameSettings, setGameSettings, onStartGame, onBack }) => {
+  const [tempEmployeeName, setTempEmployeeName] = useState("");
+
+  const addEmployee = () => {
+    if (tempEmployeeName.trim() && gameSettings.employeeNames.length < 8) {
+      setGameSettings((prev) => ({
+        ...prev,
+        employeeNames: [...prev.employeeNames, tempEmployeeName.trim()],
+      }));
+      setTempEmployeeName("");
+    }
+  };
+
+  const removeEmployee = (index: number) => {
+    setGameSettings((prev) => ({
+      ...prev,
+      employeeNames: prev.employeeNames.filter((_, i) => i !== index),
+    }));
+  };
+
+  const canStart =
+    gameSettings.bossName.trim() && gameSettings.employeeNames.length > 0;
+
+  return (
+    <motion.div
+      className="settings-screen"
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.h2
+        animate={{
+          color: ["#ffd700", "#ff6b6b", "#4CAF50", "#ffd700"],
+        }}
+        transition={{ duration: 3, repeat: Infinity }}
+      >
+        🎮 OYUN AYARLARI 🎮
+      </motion.h2>
+
+      <div className="settings-content">
+        {/* Boss Name */}
+        <div className="setting-group">
+          <label>👔 Patron İsmi:</label>
+          <input
+            type="text"
+            value={gameSettings.bossName}
+            onChange={(e) =>
+              setGameSettings((prev) => ({ ...prev, bossName: e.target.value }))
+            }
+            placeholder="Patron ismini girin..."
+            maxLength={20}
+          />
+        </div>
+
+        {/* Difficulty */}
+        <div className="setting-group">
+          <label>⚡ Zorluk Seviyesi:</label>
+          <div className="difficulty-buttons">
+            {(["kolay", "orta", "zor"] as const).map((level) => (
+              <button
+                key={level}
+                className={`difficulty-btn ${
+                  gameSettings.difficulty === level ? "active" : ""
+                }`}
+                onClick={() =>
+                  setGameSettings((prev) => ({ ...prev, difficulty: level }))
+                }
+              >
+                {level === "kolay"
+                  ? "😊 Kolay"
+                  : level === "orta"
+                  ? "🤔 Orta"
+                  : "😤 Zor"}
+              </button>
+            ))}
+          </div>
+          <div className="difficulty-info">
+            {gameSettings.difficulty === "kolay" &&
+              "🐌 Çalışanlar yavaş hareket eder"}
+            {gameSettings.difficulty === "orta" &&
+              "🚶 Çalışanlar normal hareket eder"}
+            {gameSettings.difficulty === "zor" &&
+              "🏃 Çalışanlar hızlı hareket eder"}
+          </div>
+        </div>
+
+        {/* Employee Names */}
+        <div className="setting-group">
+          <label>👥 Çalışanlar ({gameSettings.employeeNames.length}/8):</label>
+          <div className="employee-input">
+            <input
+              type="text"
+              value={tempEmployeeName}
+              onChange={(e) => setTempEmployeeName(e.target.value)}
+              placeholder="Çalışan ismini girin..."
+              maxLength={15}
+              onKeyPress={(e) => e.key === "Enter" && addEmployee()}
+            />
+            <button
+              onClick={addEmployee}
+              disabled={
+                !tempEmployeeName.trim() ||
+                gameSettings.employeeNames.length >= 8
+              }
+            >
+              ➕
+            </button>
+          </div>
+          <div className="employee-list">
+            {gameSettings.employeeNames.map((name, index) => (
+              <div key={index} className="employee-item">
+                <span>{name}</span>
+                <button onClick={() => removeEmployee(index)}>❌</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="settings-actions">
+          <motion.button
+            className="back-btn"
+            onClick={onBack}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            ⬅️ Geri
+          </motion.button>
+          <motion.button
+            className={`start-game-btn ${canStart ? "enabled" : "disabled"}`}
+            onClick={onStartGame}
+            disabled={!canStart}
+            whileHover={canStart ? { scale: 1.05 } : {}}
+            whileTap={canStart ? { scale: 0.95 } : {}}
+          >
+            🎯 Oyunu Başlat!
+          </motion.button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 function App() {
   const [score, setScore] = useState(0);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pots, setPots] = useState<Pot[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
+  const [gameSettings, setGameSettings] = useState<GameSettings>({
+    bossName: "",
+    employeeNames: [],
+    difficulty: "orta",
+  });
+  const [showSettings, setShowSettings] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
   const [ripples, setRipples] = useState<
@@ -52,6 +214,20 @@ function App() {
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>(0);
   const bossControls = useAnimation();
+
+  // Difficulty settings for employee movement
+  const getDifficultySettings = (difficulty: string) => {
+    switch (difficulty) {
+      case "kolay":
+        return { movementRange: 8, movementSpeed: 0.0005 };
+      case "orta":
+        return { movementRange: 12, movementSpeed: 0.0008 };
+      case "zor":
+        return { movementRange: 20, movementSpeed: 0.0015 };
+      default:
+        return { movementRange: 12, movementSpeed: 0.0008 };
+    }
+  };
 
   // Cleanup on unmount
   useEffect(() => {
@@ -78,20 +254,24 @@ function App() {
     );
   }, []);
 
-  // Optimized employee movement animation
+  // Optimized employee movement animation with difficulty-based speed
   useEffect(() => {
     if (!gameStarted) return;
 
     let animationId: number;
+    const difficultySettings = getDifficultySettings(gameSettings.difficulty);
 
     const moveEmployees = () => {
       setEmployees((prevEmployees) =>
         prevEmployees.map((emp) => {
           if (emp.hit) return emp;
 
-          const time = Date.now() * 0.0008; // Slightly slower for less CPU usage
-          const offsetX = Math.sin(time + emp.id) * 12; // Reduced range
-          const offsetY = Math.cos(time * 0.6 + emp.id) * 8; // Reduced range
+          const time = Date.now() * difficultySettings.movementSpeed;
+          const offsetX =
+            Math.sin(time + emp.id) * difficultySettings.movementRange;
+          const offsetY =
+            Math.cos(time * 0.6 + emp.id) *
+            (difficultySettings.movementRange * 0.6);
 
           return {
             ...emp,
@@ -106,7 +286,7 @@ function App() {
 
     animationId = requestAnimationFrame(moveEmployees);
     return () => cancelAnimationFrame(animationId);
-  }, [gameStarted]);
+  }, [gameStarted, gameSettings.difficulty]);
 
   // Game physics loop
   useEffect(() => {
@@ -337,6 +517,23 @@ function App() {
     event.preventDefault();
   };
 
+  const createEmployeesFromSettings = () => {
+    const employeePositions = EMPLOYEES_DATA.slice(
+      0,
+      gameSettings.employeeNames.length
+    );
+    return employeePositions.map((pos, index) => ({
+      id: index,
+      x: pos.x,
+      y: pos.y,
+      baseX: pos.x,
+      baseY: pos.y,
+      hit: false,
+      name: gameSettings.employeeNames[index] || `Çalışan ${index + 1}`,
+      hitCount: 0,
+    }));
+  };
+
   const resetGame = () => {
     setIsLoading(true);
     setScore(0);
@@ -354,28 +551,25 @@ function App() {
     }
 
     setTimeout(() => {
-      setEmployees(
-        EMPLOYEES_DATA.map((emp, index) => ({
-          id: index,
-          x: emp.x,
-          y: emp.y,
-          baseX: emp.x,
-          baseY: emp.y,
-          hit: false,
-          name: emp.name,
-          hitCount: 0,
-        }))
-      );
+      setEmployees(createEmployeesFromSettings());
       setIsLoading(false);
     }, 500);
   };
 
   const startGame = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setGameStarted(true);
-      setIsLoading(false);
-    }, 800);
+    if (gameSettings.bossName && gameSettings.employeeNames.length > 0) {
+      setIsLoading(true);
+      setTimeout(() => {
+        setEmployees(createEmployeesFromSettings());
+        setGameStarted(true);
+        setShowSettings(false);
+        setIsLoading(false);
+      }, 800);
+    }
+  };
+
+  const openSettings = () => {
+    setShowSettings(true);
   };
 
   const allEmployeesHit =
@@ -534,7 +728,11 @@ function App() {
           >
             🧔‍♂️
           </motion.div>
-          <div className="boss-label">PATRON (SEN)</div>
+          <div className="boss-label">
+            {gameSettings.bossName
+              ? `PATRON ${gameSettings.bossName.toUpperCase()}`
+              : "PATRON (SEN)"}
+          </div>
           <motion.div
             className="launch-indicator"
             animate={{
@@ -731,7 +929,7 @@ function App() {
       </div>
 
       <AnimatePresence>
-        {!gameStarted && (
+        {!gameStarted && !showSettings && (
           <motion.div
             className="welcome-screen"
             initial={{ opacity: 0, scale: 0.8, y: 50 }}
@@ -753,7 +951,31 @@ function App() {
               fırlat! 🏺
             </p>
             <p>Kafalarına isabet ettir ve puanını artır! 🎯</p>
+            <motion.button
+              className="start-btn"
+              onClick={openSettings}
+              disabled={isLoading}
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              Oyunu Başlat! 🎯
+            </motion.button>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Settings Screen - Outside of game area */}
+      <AnimatePresence>
+        {showSettings && (
+          <SettingsScreen
+            gameSettings={gameSettings}
+            setGameSettings={setGameSettings}
+            onStartGame={startGame}
+            onBack={() => setShowSettings(false)}
+          />
         )}
       </AnimatePresence>
 
