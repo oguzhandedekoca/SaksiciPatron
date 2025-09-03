@@ -234,7 +234,6 @@ function App() {
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [powerLevel, setPowerLevel] = useState(0);
-  const [isCharging, setIsCharging] = useState(false);
   const [showPowerBar, setShowPowerBar] = useState(false);
   const chargingStartTime = useRef<number>(0);
   const chargingAnimationId = useRef<number | null>(null);
@@ -272,7 +271,7 @@ function App() {
 
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.1);
-    } catch (error) {
+    } catch {
       console.log("Audio not supported");
     }
   };
@@ -300,7 +299,7 @@ function App() {
 
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
-    } catch (error) {
+    } catch {
       console.log("Audio not supported");
     }
   };
@@ -336,7 +335,7 @@ function App() {
         oscillator.start(audioContext.currentTime + i * 0.05);
         oscillator.stop(audioContext.currentTime + 0.2 + i * 0.05);
       }
-    } catch (error) {
+    } catch {
       console.log("Audio not supported");
     }
   };
@@ -357,7 +356,7 @@ function App() {
         { freq: 1047, time: 1.4 }, // C6
       ];
 
-      notes.forEach((note, index) => {
+      notes.forEach((note) => {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
 
@@ -382,7 +381,7 @@ function App() {
         oscillator.start(audioContext.currentTime + note.time);
         oscillator.stop(audioContext.currentTime + note.time + 0.3);
       });
-    } catch (error) {
+    } catch {
       console.log("Audio not supported");
     }
   };
@@ -606,7 +605,6 @@ function App() {
     }
 
     // Reset states immediately
-    setIsCharging(true);
     setShowPowerBar(true);
     setPowerLevel(0);
     chargingStartTime.current = Date.now();
@@ -628,7 +626,6 @@ function App() {
       } else {
         // Auto-release at max power
         chargingAnimationId.current = null;
-        setIsCharging(false);
       }
     };
 
@@ -646,8 +643,6 @@ function App() {
       cancelAnimationFrame(chargingAnimationId.current);
       chargingAnimationId.current = null;
     }
-
-    setIsCharging(false);
 
     // Minimum power requirement
     if (powerLevel < 0.05) {
@@ -740,12 +735,13 @@ function App() {
     const maxAttempts = 50; // Maksimum deneme sayısı
 
     // Ekranın her yerine random dağıtım
-    const randomPositions = [];
+    const randomPositions: { x: number; y: number }[] = [];
 
     for (let i = 0; i < employeeCount; i++) {
       let attempts = 0;
       let validPosition = false;
-      let x, y;
+      let x: number = 0;
+      let y: number = 0;
 
       // Çalışanların birbirine çok yakın olmaması için kontrol
       while (!validPosition && attempts < maxAttempts) {
@@ -785,7 +781,6 @@ function App() {
     setScreenShake(false);
     setShowConfetti(false);
     setPowerLevel(0);
-    setIsCharging(false);
     setShowPowerBar(false);
 
     // Clear any charging animation
