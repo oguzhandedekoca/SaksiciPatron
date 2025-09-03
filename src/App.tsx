@@ -6,6 +6,8 @@ interface Employee {
   id: number;
   x: number;
   y: number;
+  baseX: number;
+  baseY: number;
   hit: boolean;
   name: string;
   hitCount: number;
@@ -22,14 +24,14 @@ interface Pot {
 }
 
 const EMPLOYEES_DATA = [
-  { name: "Ahmet", x: 120, y: 200 },
-  { name: "Fatma", x: 320, y: 180 },
-  { name: "Mehmet", x: 520, y: 220 },
-  { name: "Ayşe", x: 720, y: 190 },
-  { name: "Mustafa", x: 200, y: 350 },
-  { name: "Zeynep", x: 400, y: 330 },
-  { name: "Ali", x: 600, y: 360 },
-  { name: "Elif", x: 150, y: 480 },
+  { name: "Ahmet", x: 150, y: 180 },
+  { name: "Fatma", x: 450, y: 160 },
+  { name: "Mehmet", x: 750, y: 200 },
+  { name: "Ayşe", x: 1050, y: 170 },
+  { name: "Mustafa", x: 250, y: 320 },
+  { name: "Zeynep", x: 550, y: 300 },
+  { name: "Ali", x: 850, y: 340 },
+  { name: "Elif", x: 350, y: 460 },
 ];
 
 function App() {
@@ -45,9 +47,20 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [powerLevel, setPowerLevel] = useState(0);
   const [isCharging, setIsCharging] = useState(false);
+  const chargingStartTime = useRef<number>(0);
+  const chargingInterval = useRef<number | null>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>();
   const bossControls = useAnimation();
+
+  // Cleanup intervals on unmount
+  useEffect(() => {
+    return () => {
+      if (chargingInterval.current) {
+        clearInterval(chargingInterval.current);
+      }
+    };
+  }, []);
 
   // Initialize employees
   useEffect(() => {
@@ -56,12 +69,40 @@ function App() {
         id: index,
         x: emp.x,
         y: emp.y,
+        baseX: emp.x,
+        baseY: emp.y,
         hit: false,
         name: emp.name,
         hitCount: 0,
       }))
     );
   }, []);
+
+  // Employee movement animation
+  useEffect(() => {
+    if (!gameStarted) return;
+
+    const moveEmployees = () => {
+      setEmployees((prevEmployees) =>
+        prevEmployees.map((emp) => {
+          if (emp.hit) return emp;
+
+          const time = Date.now() * 0.001;
+          const offsetX = Math.sin(time + emp.id) * 15; // 15px movement range
+          const offsetY = Math.cos(time * 0.7 + emp.id) * 10; // 10px movement range
+
+          return {
+            ...emp,
+            x: emp.baseX + offsetX,
+            y: emp.baseY + offsetY,
+          };
+        })
+      );
+    };
+
+    const interval = setInterval(moveEmployees, 50); // 20 FPS for smooth movement
+    return () => clearInterval(interval);
+  }, [gameStarted]);
 
   // Game physics loop
   useEffect(() => {
@@ -115,87 +156,120 @@ function App() {
     };
   }, [gameStarted]);
 
-  // Enhanced collision detection
+  // Enhanced collision detection with better hit detection
   useEffect(() => {
     const checkCollisions = () => {
       setPots((prevPots) => {
-        const activePots = prevPots.filter((pot) => pot.active);
+        return prevPots
+          .map((pot) => {
+            if (!pot.active) return pot;
 
-        activePots.forEach((pot) => {
-          setEmployees((prevEmployees) => {
-            return prevEmployees.map((employee) => {
-              // Check collision with employee head area
+            // Check collision with all employees
+            const hitEmployee = employees.find((employee) => {
+              if (employee.hit) return false;
+
+              // More precise collision detection
               const headX = employee.x + 40; // Head center
               const headY = employee.y + 20; // Head center
               const distance = Math.sqrt(
                 Math.pow(pot.x - headX, 2) + Math.pow(pot.y - headY, 2)
               );
 
-              if (distance < 35 && !employee.hit) {
-                setScore((prev) => prev + 1);
-                setShowConfetti(true);
-                setScreenShake(true);
-
-                // Boss celebration
-                bossControls.start({
-                  scale: [1, 1.3, 1],
-                  rotate: [0, 15, -15, 0],
-                  transition: { duration: 0.6 },
-                });
-
-                setTimeout(() => setShowConfetti(false), 2500);
-                setTimeout(() => setScreenShake(false), 300);
-
-                // Remove the pot
-                setPots((currentPots) =>
-                  currentPots.filter((p) => p.id !== pot.id)
-                );
-
-                return {
-                  ...employee,
-                  hit: true,
-                  hitCount: employee.hitCount + 1,
-                };
-              }
-
-              return employee;
+              return distance < 30; // Smaller hit radius for better precision
             });
-          });
-        });
 
-        return prevPots;
+            if (hitEmployee) {
+              setScore((prev) => prev + 1);
+              setShowConfetti(true);
+              setScreenShake(true);
+
+              // Boss celebration
+              bossControls.start({
+                scale: [1, 1.3, 1],
+                rotate: [0, 15, -15, 0],
+                transition: { duration: 0.6 },
+              });
+
+              setTimeout(() => setShowConfetti(false), 2500);
+              setTimeout(() => setScreenShake(false), 300);
+
+              // Update the hit employee
+              setEmployees((prevEmployees) =>
+                prevEmployees.map((emp) =>
+                  emp.id === hitEmployee.id
+                    ? {
+                        ...emp,
+                        hit: true,
+                        hitCount: emp.hitCount + 1,
+                        x: emp.baseX, // Stop movement when hit
+                        y: emp.baseY,
+                      }
+                    : emp
+                )
+              );
+
+              // Deactivate the pot
+              return { ...pot, active: false };
+            }
+
+            return pot;
+          })
+          .filter((pot) => pot.active);
       });
     };
 
     const interval = setInterval(checkCollisions, 16);
     return () => clearInterval(interval);
-  }, [bossControls]);
+  }, [employees, bossControls]);
 
-  // Power charging system
+  // Fixed power charging system
   const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!gameStarted || isLoading) return;
+    if (!gameStarted || isLoading || isCharging) return;
+
+    // Prevent context menu
+    event.preventDefault();
 
     setIsCharging(true);
-    const startTime = Date.now();
+    setPowerLevel(0);
+    chargingStartTime.current = Date.now();
 
-    const chargePower = () => {
-      const elapsed = Date.now() - startTime;
-      const power = Math.min(elapsed / 1000, 2); // Max 2 seconds
+    // Clear any existing interval
+    if (chargingInterval.current) {
+      clearInterval(chargingInterval.current);
+    }
+
+    // Start charging with interval
+    chargingInterval.current = window.setInterval(() => {
+      const elapsed = Date.now() - chargingStartTime.current;
+      const power = Math.min(elapsed / 2000, 1); // 2 seconds for full power
       setPowerLevel(power);
 
-      if (isCharging) {
-        requestAnimationFrame(chargePower);
+      // Stop at max power
+      if (power >= 1 && chargingInterval.current) {
+        clearInterval(chargingInterval.current);
+        chargingInterval.current = null;
       }
-    };
-
-    requestAnimationFrame(chargePower);
+    }, 16); // ~60 FPS
   };
 
   const handleMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!gameStarted || !gameAreaRef.current || isLoading || !isCharging)
-      return;
+    if (!gameStarted || !gameAreaRef.current || isLoading) return;
+
+    event.preventDefault();
+
+    // Clear charging interval
+    if (chargingInterval.current) {
+      clearInterval(chargingInterval.current);
+      chargingInterval.current = null;
+    }
 
     setIsCharging(false);
+
+    // Minimum power requirement
+    if (powerLevel < 0.05) {
+      setPowerLevel(0);
+      return;
+    }
 
     const rect = gameAreaRef.current.getBoundingClientRect();
     const targetX = event.clientX - rect.left;
@@ -212,17 +286,19 @@ function App() {
       setRipples((prev) => prev.filter((r) => r.id !== newRipple.id));
     }, 1000);
 
-    // Calculate launch physics
+    // Calculate launch physics with better power scaling
     const startX = window.innerWidth / 2;
     const startY = window.innerHeight - 60;
     const deltaX = targetX - startX;
     const deltaY = targetY - startY;
 
     const angle = Math.atan2(deltaY, deltaX);
-    const power = 15 + powerLevel * 10; // Base speed + power bonus
+    const basePower = 12;
+    const powerBonus = powerLevel * 18; // More balanced power scaling
+    const totalPower = basePower + powerBonus;
 
-    const vx = Math.cos(angle) * power;
-    const vy = Math.sin(angle) * power;
+    const vx = Math.cos(angle) * totalPower;
+    const vy = Math.sin(angle) * totalPower;
 
     const newPot: Pot = {
       id: Date.now(),
@@ -237,12 +313,18 @@ function App() {
     setPots((prev) => [...prev, newPot]);
     setPowerLevel(0);
 
-    // Boss throwing animation
+    // Boss throwing animation based on power
+    const animationIntensity = 1 + powerLevel * 0.5;
     bossControls.start({
-      y: [0, -25, 0],
-      scale: [1, 1.2, 1],
+      y: [0, -15 * animationIntensity, 0],
+      scale: [1, 1.1 + powerLevel * 0.2, 1],
       transition: { duration: 0.4 },
     });
+  };
+
+  // Handle context menu to prevent right-click issues
+  const handleContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
   };
 
   const resetGame = () => {
@@ -255,12 +337,20 @@ function App() {
     setPowerLevel(0);
     setIsCharging(false);
 
+    // Clear any charging interval
+    if (chargingInterval.current) {
+      clearInterval(chargingInterval.current);
+      chargingInterval.current = null;
+    }
+
     setTimeout(() => {
       setEmployees(
         EMPLOYEES_DATA.map((emp, index) => ({
           id: index,
           x: emp.x,
           y: emp.y,
+          baseX: emp.x,
+          baseY: emp.y,
           hit: false,
           name: emp.name,
           hitCount: 0,
@@ -382,6 +472,7 @@ function App() {
         ref={gameAreaRef}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
+        onContextMenu={handleContextMenu}
       >
         <AnimatePresence>
           {gameStarted && !allEmployeesHit && (
@@ -409,11 +500,11 @@ function App() {
               <motion.div
                 className="power-fill"
                 animate={{
-                  width: `${(powerLevel / 2) * 100}%`,
+                  width: `${powerLevel * 100}%`,
                   backgroundColor:
-                    powerLevel > 1.5
+                    powerLevel > 0.75
                       ? "#ff4444"
-                      : powerLevel > 1
+                      : powerLevel > 0.5
                       ? "#ffaa00"
                       : "#44ff44",
                 }}
@@ -421,7 +512,7 @@ function App() {
               />
             </div>
             <div className="power-label">
-              GÜÇ: {Math.round(powerLevel * 50)}%
+              GÜÇ: {Math.round(powerLevel * 100)}%
             </div>
           </motion.div>
         )}
