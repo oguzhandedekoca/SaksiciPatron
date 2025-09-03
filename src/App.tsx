@@ -31,18 +31,18 @@ interface Pot {
 
 const EMPLOYEES_DATA = [
   // Sol üst bölge
-  { name: "Ahmet", x: 120, y: 120 },
-  { name: "Fatma", x: 200, y: 180 },
-  { name: "Mustafa", x: 150, y: 250 },
-  { name: "Hakan", x: 100, y: 320 },
-  { name: "Leyla", x: 180, y: 380 },
+  { name: "Hamza", x: 120, y: 120 },
+  { name: "Adil", x: 200, y: 180 },
+  { name: "Emin", x: 150, y: 250 },
+  { name: "Sadık", x: 100, y: 320 },
+  { name: "Oğuzhan", x: 180, y: 380 },
 
   // Orta sol bölge
-  { name: "Zeynep", x: 300, y: 150 },
-  { name: "Elif", x: 350, y: 220 },
-  { name: "Deniz", x: 280, y: 300 },
-  { name: "Ece", x: 320, y: 380 },
-  { name: "İpek", x: 250, y: 450 },
+  { name: "Alihan", x: 300, y: 150 },
+  { name: "Pınar", x: 350, y: 220 },
+  { name: "Sezer", x: 280, y: 300 },
+  { name: "Engin", x: 320, y: 380 },
+  { name: "Enes Ali", x: 250, y: 450 },
 
   // Orta bölge
   { name: "Mehmet", x: 500, y: 100 },
@@ -62,7 +62,7 @@ const EMPLOYEES_DATA = [
   { name: "Emre", x: 1100, y: 150 },
   { name: "Selin", x: 1200, y: 220 },
   { name: "Okan", x: 1150, y: 320 },
-  { name: "Pınar", x: 1050, y: 400 },
+  { name: "Furkan", x: 1050, y: 400 },
   { name: "Tolga", x: 1180, y: 480 },
 ];
 
