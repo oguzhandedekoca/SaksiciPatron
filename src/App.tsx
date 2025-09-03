@@ -30,26 +30,40 @@ interface Pot {
 }
 
 const EMPLOYEES_DATA = [
-  { name: "Ahmet", x: 150, y: 180 },
-  { name: "Fatma", x: 450, y: 160 },
-  { name: "Mehmet", x: 750, y: 200 },
-  { name: "Ayşe", x: 1050, y: 170 },
-  { name: "Mustafa", x: 250, y: 320 },
-  { name: "Zeynep", x: 550, y: 300 },
-  { name: "Ali", x: 850, y: 340 },
-  { name: "Elif", x: 350, y: 460 },
-  { name: "Burak", x: 650, y: 120 },
-  { name: "Cemre", x: 950, y: 280 },
-  { name: "Deniz", x: 200, y: 400 },
-  { name: "Ece", x: 500, y: 450 },
-  { name: "Furkan", x: 800, y: 480 },
-  { name: "Gizem", x: 1100, y: 350 },
-  { name: "Hakan", x: 300, y: 100 },
-  { name: "İpek", x: 600, y: 380 },
-  { name: "Kaan", x: 900, y: 420 },
-  { name: "Leyla", x: 100, y: 250 },
-  { name: "Murat", x: 400, y: 200 },
-  { name: "Nazlı", x: 700, y: 160 },
+  // Sol üst bölge
+  { name: "Ahmet", x: 120, y: 120 },
+  { name: "Fatma", x: 200, y: 180 },
+  { name: "Mustafa", x: 150, y: 250 },
+  { name: "Hakan", x: 100, y: 320 },
+  { name: "Leyla", x: 180, y: 380 },
+
+  // Orta sol bölge
+  { name: "Zeynep", x: 300, y: 150 },
+  { name: "Elif", x: 350, y: 220 },
+  { name: "Deniz", x: 280, y: 300 },
+  { name: "Ece", x: 320, y: 380 },
+  { name: "İpek", x: 250, y: 450 },
+
+  // Orta bölge
+  { name: "Mehmet", x: 500, y: 100 },
+  { name: "Ayşe", x: 600, y: 180 },
+  { name: "Ali", x: 550, y: 280 },
+  { name: "Burak", x: 650, y: 350 },
+  { name: "Murat", x: 580, y: 420 },
+
+  // Orta sağ bölge
+  { name: "Cemre", x: 800, y: 120 },
+  { name: "Gizem", x: 900, y: 200 },
+  { name: "Kaan", x: 850, y: 300 },
+  { name: "Nazlı", x: 750, y: 380 },
+  { name: "Furkan", x: 820, y: 460 },
+
+  // Sağ bölge
+  { name: "Emre", x: 1100, y: 150 },
+  { name: "Selin", x: 1200, y: 220 },
+  { name: "Okan", x: 1150, y: 320 },
+  { name: "Pınar", x: 1050, y: 400 },
+  { name: "Tolga", x: 1180, y: 480 },
 ];
 
 // Settings Screen Component
@@ -141,7 +155,7 @@ const SettingsScreen: React.FC<{
             {gameSettings.difficulty === "orta" &&
               "🚶 Çalışanlar normal hareket eder"}
             {gameSettings.difficulty === "zor" &&
-              "🏃 Çalışanlar hızlı hareket eder"}
+              "🏃💨 Çalışanlar çok hızlı ve geniş hareket eder"}
           </div>
         </div>
 
@@ -235,7 +249,7 @@ function App() {
       case "orta":
         return { movementRange: 12, movementSpeed: 0.0008 };
       case "zor":
-        return { movementRange: 20, movementSpeed: 0.0015 };
+        return { movementRange: 30, movementSpeed: 0.0025 }; // Çok daha hızlı ve geniş hareket
       default:
         return { movementRange: 12, movementSpeed: 0.0008 };
     }
@@ -742,7 +756,7 @@ function App() {
           </motion.div>
           <div className="boss-label">
             {gameSettings.bossName
-              ? `PATRON ${gameSettings.bossName.toUpperCase()}`
+              ? ` ${gameSettings.bossName.toUpperCase()}`
               : "PATRON (SEN)"}
           </div>
           <motion.div
@@ -757,7 +771,7 @@ function App() {
               ease: "easeInOut",
             }}
           >
-            🏺
+            <div className="pot-body">🪴</div>
           </motion.div>
         </motion.div>
 
