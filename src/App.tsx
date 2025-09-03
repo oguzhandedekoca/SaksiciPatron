@@ -235,6 +235,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [powerLevel, setPowerLevel] = useState(0);
   const [isCharging, setIsCharging] = useState(false);
+  const [showPowerBar, setShowPowerBar] = useState(false);
   const chargingStartTime = useRef<number>(0);
   const chargingAnimationId = useRef<number | null>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
@@ -396,10 +397,19 @@ function App() {
 
                 // Boss celebration
                 bossControls.start({
-                  scale: [1, 1.3, 1],
-                  rotate: [0, 15, -15, 0],
-                  transition: { duration: 0.6 },
+                  scale: 1.3,
+                  rotate: 15,
+                  transition: { duration: 0.3 },
                 });
+
+                // Reset boss after celebration
+                setTimeout(() => {
+                  bossControls.start({
+                    scale: 1,
+                    rotate: 0,
+                    transition: { duration: 0.3 },
+                  });
+                }, 300);
 
                 setTimeout(() => setShowConfetti(false), 2000);
                 setTimeout(() => setScreenShake(false), 250);
@@ -435,7 +445,7 @@ function App() {
     return () => cancelAnimationFrame(collisionAnimationId);
   }, [employees, bossControls, gameStarted]);
 
-  // Simple and fast power charging system
+  // Improved power charging system
   const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!gameStarted || isLoading) return;
 
@@ -444,23 +454,30 @@ function App() {
     // Clear any existing animation
     if (chargingAnimationId.current) {
       cancelAnimationFrame(chargingAnimationId.current);
+      chargingAnimationId.current = null;
     }
 
     // Reset states immediately
     setIsCharging(true);
+    setShowPowerBar(true);
     setPowerLevel(0);
     chargingStartTime.current = Date.now();
 
-    // Simple charging loop
+    // Improved charging loop with better stability
     const charge = () => {
       const now = Date.now();
       const elapsed = now - chargingStartTime.current;
-      const newPower = Math.min(elapsed / 1500, 1); // 1.5 seconds for full power (faster)
+      const newPower = Math.min(elapsed / 1500, 1); // 1.5 seconds for full power
 
       setPowerLevel(newPower);
 
+      // Continue charging if not at max
       if (newPower < 1) {
         chargingAnimationId.current = requestAnimationFrame(charge);
+      } else {
+        // Auto-release at max power
+        chargingAnimationId.current = null;
+        setIsCharging(false);
       }
     };
 
@@ -483,7 +500,11 @@ function App() {
 
     // Minimum power requirement
     if (powerLevel < 0.05) {
-      setPowerLevel(0);
+      // Don't reset powerLevel immediately, let it fade naturally
+      setTimeout(() => {
+        setPowerLevel(0);
+        setShowPowerBar(false);
+      }, 300);
       return;
     }
 
@@ -527,15 +548,29 @@ function App() {
     };
 
     setPots((prev) => [...prev, newPot]);
-    setPowerLevel(0);
+
+    // Delay power reset to show the final power level briefly
+    setTimeout(() => {
+      setPowerLevel(0);
+      setShowPowerBar(false);
+    }, 500);
 
     // Boss throwing animation based on power
     const animationIntensity = 1 + powerLevel * 0.5;
     bossControls.start({
-      y: [0, -15 * animationIntensity, 0],
-      scale: [1, 1.1 + powerLevel * 0.2, 1],
-      transition: { duration: 0.4 },
+      y: -15 * animationIntensity,
+      scale: 1.1 + powerLevel * 0.2,
+      transition: { duration: 0.2 },
     });
+
+    // Reset boss position after animation
+    setTimeout(() => {
+      bossControls.start({
+        y: 0,
+        scale: 1,
+        transition: { duration: 0.2 },
+      });
+    }, 200);
   };
 
   // Handle context menu to prevent right-click issues
@@ -597,6 +632,7 @@ function App() {
     setShowConfetti(false);
     setPowerLevel(0);
     setIsCharging(false);
+    setShowPowerBar(false);
 
     // Clear any charging animation
     if (chargingAnimationId.current) {
@@ -613,6 +649,7 @@ function App() {
   const startGame = () => {
     if (gameSettings.bossName && gameSettings.employeeNames.length > 0) {
       setIsLoading(true);
+      setShowPowerBar(false);
       setTimeout(() => {
         setEmployees(createEmployeesFromSettings());
         setGameStarted(true);
@@ -653,7 +690,7 @@ function App() {
                 animate={{
                   y: window.innerHeight + 100,
                   rotate: 720,
-                  scale: [0, 1, 0],
+                  scale: 1,
                 }}
                 transition={{
                   duration: 3 + Math.random() * 2,
@@ -692,8 +729,14 @@ function App() {
             className="score"
             key={score}
             initial={{ scale: 1 }}
-            animate={{ scale: [1, 1.3, 1] }}
-            transition={{ duration: 0.4 }}
+            animate={{ scale: 1.3 }}
+            transition={{ duration: 0.2 }}
+            onAnimationComplete={() => {
+              // Reset scale after animation
+              setTimeout(() => {
+                // This will be handled by the key prop change
+              }, 200);
+            }}
           >
             Skor: {score}
           </motion.span>
@@ -733,12 +776,13 @@ function App() {
         onContextMenu={handleContextMenu}
       >
         {/* Power Meter */}
-        {isCharging && (
+        {showPowerBar && (
           <motion.div
             className="power-meter"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
           >
             <div className="power-bar">
               <motion.div
@@ -752,7 +796,7 @@ function App() {
                       ? "#ffaa00"
                       : "#44ff44",
                 }}
-                transition={{ duration: 0.1 }}
+                transition={{ duration: 0.1, ease: "easeOut" }}
               />
             </div>
             <div className="power-label">
@@ -772,11 +816,12 @@ function App() {
           <motion.div
             className="boss-character"
             animate={{
-              y: [0, -8, 0],
+              y: -8,
             }}
             transition={{
-              duration: 2,
+              duration: 1,
               repeat: Infinity,
+              repeatType: "reverse",
               ease: "easeInOut",
             }}
           >
@@ -790,12 +835,13 @@ function App() {
           <motion.div
             className="launch-indicator"
             animate={{
-              y: [0, -12, 0],
-              scale: [1, 1.1, 1],
+              y: -12,
+              scale: 1.1,
             }}
             transition={{
-              duration: 1.2,
+              duration: 0.6,
               repeat: Infinity,
+              repeatType: "reverse",
               ease: "easeInOut",
             }}
           >
@@ -817,7 +863,7 @@ function App() {
               animate={{
                 scale: 1,
                 rotate: 0,
-                y: employee.hit ? [0, -20, 0] : 0,
+                y: employee.hit ? -20 : 0,
               }}
               transition={{
                 delay: index * 0.1,
@@ -956,12 +1002,13 @@ function App() {
             >
               <motion.div
                 animate={{
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 3, -3, 0],
+                  scale: 1.1,
+                  rotate: 3,
                 }}
                 transition={{
-                  duration: 2,
+                  duration: 1,
                   repeat: Infinity,
+                  repeatType: "reverse",
                 }}
               >
                 🎉 Hakkını verdin! TÜM ÇALIŞANLARI VURDUN! 🎉
