@@ -564,3 +564,50 @@ body {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(0.9) rotate(5deg); }
 }
+
+
+
+/* Realistic Pot Design */
+.pot {
+  position: absolute;
+  z-index: 75;
+  pointer-events: none;
+  filter: drop-shadow(3px 3px 8px rgba(0, 0, 0, 0.5));
+  animation: pot-wobble 0.3s ease-in-out infinite alternate;
+}
+
+.realistic-pot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: scale(1.2);
+}
+
+.pot-plant {
+  font-size: 1.8rem;
+  margin-bottom: -8px;
+  z-index: 3;
+  animation: plant-sway 2s ease-in-out infinite;
+}
+
+.pot-soil {
+  font-size: 1.2rem;
+  margin-bottom: -5px;
+  z-index: 2;
+}
+
+.pot-body {
+  font-size: 2.5rem;
+  z-index: 1;
+}
+
+@keyframes pot-wobble {
+  0% { transform: scale(1) rotate(-2deg); }
+  100% { transform: scale(1.05) rotate(2deg); }
+}
+
+@keyframes plant-sway {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(3deg); }
+}

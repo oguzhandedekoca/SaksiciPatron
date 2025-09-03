@@ -652,7 +652,7 @@ function App() {
                 />
               ))}
 
-              {/* Main Pot */}
+              {/* Realistic Pot */}
               <motion.div
                 className="pot"
                 style={{
@@ -667,7 +667,11 @@ function App() {
                 exit={{ scale: 0, opacity: 0 }}
                 transition={{ duration: 0.1 }}
               >
-                🏺
+                <div className="realistic-pot">
+                  <div className="pot-plant">🌿</div>
+                  <div className="pot-soil">🟫</div>
+                  <div className="pot-body">🪴</div>
+                </div>
               </motion.div>
             </motion.div>
           ))}
