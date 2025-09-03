@@ -48,16 +48,16 @@ function App() {
   const [powerLevel, setPowerLevel] = useState(0);
   const [isCharging, setIsCharging] = useState(false);
   const chargingStartTime = useRef<number>(0);
-  const chargingInterval = useRef<number | null>(null);
+  const chargingAnimationId = useRef<number | null>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>();
   const bossControls = useAnimation();
 
-  // Cleanup intervals on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (chargingInterval.current) {
-        clearInterval(chargingInterval.current);
+      if (chargingAnimationId.current) {
+        cancelAnimationFrame(chargingAnimationId.current);
       }
     };
   }, []);
@@ -78,18 +78,20 @@ function App() {
     );
   }, []);
 
-  // Employee movement animation
+  // Optimized employee movement animation
   useEffect(() => {
     if (!gameStarted) return;
+
+    let animationId: number;
 
     const moveEmployees = () => {
       setEmployees((prevEmployees) =>
         prevEmployees.map((emp) => {
           if (emp.hit) return emp;
 
-          const time = Date.now() * 0.001;
-          const offsetX = Math.sin(time + emp.id) * 15; // 15px movement range
-          const offsetY = Math.cos(time * 0.7 + emp.id) * 10; // 10px movement range
+          const time = Date.now() * 0.0008; // Slightly slower for less CPU usage
+          const offsetX = Math.sin(time + emp.id) * 12; // Reduced range
+          const offsetY = Math.cos(time * 0.6 + emp.id) * 8; // Reduced range
 
           return {
             ...emp,
@@ -98,10 +100,12 @@ function App() {
           };
         })
       );
+
+      animationId = requestAnimationFrame(moveEmployees);
     };
 
-    const interval = setInterval(moveEmployees, 50); // 20 FPS for smooth movement
-    return () => clearInterval(interval);
+    animationId = requestAnimationFrame(moveEmployees);
+    return () => cancelAnimationFrame(animationId);
   }, [gameStarted]);
 
   // Game physics loop
@@ -156,100 +160,106 @@ function App() {
     };
   }, [gameStarted]);
 
-  // Enhanced collision detection with better hit detection
+  // Optimized collision detection
   useEffect(() => {
+    if (!gameStarted) return;
+
+    let collisionAnimationId: number;
+
     const checkCollisions = () => {
       setPots((prevPots) => {
         return prevPots
           .map((pot) => {
             if (!pot.active) return pot;
 
-            // Check collision with all employees
-            const hitEmployee = employees.find((employee) => {
-              if (employee.hit) return false;
+            // Quick collision check with active employees only
+            const activeEmployees = employees.filter((emp) => !emp.hit);
 
-              // More precise collision detection
-              const headX = employee.x + 40; // Head center
-              const headY = employee.y + 20; // Head center
-              const distance = Math.sqrt(
-                Math.pow(pot.x - headX, 2) + Math.pow(pot.y - headY, 2)
-              );
+            for (const employee of activeEmployees) {
+              const headX = employee.x + 40;
+              const headY = employee.y + 20;
+              const dx = pot.x - headX;
+              const dy = pot.y - headY;
+              const distance = dx * dx + dy * dy; // Skip sqrt for performance
 
-              return distance < 30; // Smaller hit radius for better precision
-            });
+              if (distance < 900) {
+                // 30px radius squared
+                setScore((prev) => prev + 1);
+                setShowConfetti(true);
+                setScreenShake(true);
 
-            if (hitEmployee) {
-              setScore((prev) => prev + 1);
-              setShowConfetti(true);
-              setScreenShake(true);
+                // Boss celebration
+                bossControls.start({
+                  scale: [1, 1.3, 1],
+                  rotate: [0, 15, -15, 0],
+                  transition: { duration: 0.6 },
+                });
 
-              // Boss celebration
-              bossControls.start({
-                scale: [1, 1.3, 1],
-                rotate: [0, 15, -15, 0],
-                transition: { duration: 0.6 },
-              });
+                setTimeout(() => setShowConfetti(false), 2000);
+                setTimeout(() => setScreenShake(false), 250);
 
-              setTimeout(() => setShowConfetti(false), 2500);
-              setTimeout(() => setScreenShake(false), 300);
+                // Update the hit employee
+                setEmployees((prevEmployees) =>
+                  prevEmployees.map((emp) =>
+                    emp.id === employee.id
+                      ? {
+                          ...emp,
+                          hit: true,
+                          hitCount: emp.hitCount + 1,
+                          x: emp.baseX,
+                          y: emp.baseY,
+                        }
+                      : emp
+                  )
+                );
 
-              // Update the hit employee
-              setEmployees((prevEmployees) =>
-                prevEmployees.map((emp) =>
-                  emp.id === hitEmployee.id
-                    ? {
-                        ...emp,
-                        hit: true,
-                        hitCount: emp.hitCount + 1,
-                        x: emp.baseX, // Stop movement when hit
-                        y: emp.baseY,
-                      }
-                    : emp
-                )
-              );
-
-              // Deactivate the pot
-              return { ...pot, active: false };
+                return { ...pot, active: false };
+              }
             }
 
             return pot;
           })
           .filter((pot) => pot.active);
       });
+
+      collisionAnimationId = requestAnimationFrame(checkCollisions);
     };
 
-    const interval = setInterval(checkCollisions, 16);
-    return () => clearInterval(interval);
-  }, [employees, bossControls]);
+    collisionAnimationId = requestAnimationFrame(checkCollisions);
+    return () => cancelAnimationFrame(collisionAnimationId);
+  }, [employees, bossControls, gameStarted]);
 
-  // Fixed power charging system
+  // Simple and fast power charging system
   const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!gameStarted || isLoading || isCharging) return;
+    if (!gameStarted || isLoading) return;
 
-    // Prevent context menu
     event.preventDefault();
 
+    // Clear any existing animation
+    if (chargingAnimationId.current) {
+      cancelAnimationFrame(chargingAnimationId.current);
+    }
+
+    // Reset states immediately
     setIsCharging(true);
     setPowerLevel(0);
     chargingStartTime.current = Date.now();
 
-    // Clear any existing interval
-    if (chargingInterval.current) {
-      clearInterval(chargingInterval.current);
-    }
+    // Simple charging loop
+    const charge = () => {
+      const now = Date.now();
+      const elapsed = now - chargingStartTime.current;
+      const newPower = Math.min(elapsed / 1500, 1); // 1.5 seconds for full power (faster)
 
-    // Start charging with interval
-    chargingInterval.current = window.setInterval(() => {
-      const elapsed = Date.now() - chargingStartTime.current;
-      const power = Math.min(elapsed / 2000, 1); // 2 seconds for full power
-      setPowerLevel(power);
+      setPowerLevel(newPower);
 
-      // Stop at max power
-      if (power >= 1 && chargingInterval.current) {
-        clearInterval(chargingInterval.current);
-        chargingInterval.current = null;
+      if (newPower < 1) {
+        chargingAnimationId.current = requestAnimationFrame(charge);
       }
-    }, 16); // ~60 FPS
+    };
+
+    // Start immediately
+    charge();
   };
 
   const handleMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -257,10 +267,10 @@ function App() {
 
     event.preventDefault();
 
-    // Clear charging interval
-    if (chargingInterval.current) {
-      clearInterval(chargingInterval.current);
-      chargingInterval.current = null;
+    // Clear charging animation
+    if (chargingAnimationId.current) {
+      cancelAnimationFrame(chargingAnimationId.current);
+      chargingAnimationId.current = null;
     }
 
     setIsCharging(false);
@@ -337,10 +347,10 @@ function App() {
     setPowerLevel(0);
     setIsCharging(false);
 
-    // Clear any charging interval
-    if (chargingInterval.current) {
-      clearInterval(chargingInterval.current);
-      chargingInterval.current = null;
+    // Clear any charging animation
+    if (chargingAnimationId.current) {
+      cancelAnimationFrame(chargingAnimationId.current);
+      chargingAnimationId.current = null;
     }
 
     setTimeout(() => {

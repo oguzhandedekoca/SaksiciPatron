@@ -89,18 +89,17 @@ body {
   cursor: not-allowed;
 }
 
-/* Game Area */
+/* Game Area - Optimized */
 .game-area {
   width: 100%;
   height: 100vh;
   position: relative;
   cursor: crosshair;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   overflow: hidden;
   min-width: 100vw;
+  will-change: scroll-position;
+  transform: translateZ(0);
 }
 
 .instructions {
@@ -243,13 +242,15 @@ body {
   transform: rotate(15deg);
 }
 
-/* Employee */
+/* Employee - Optimized */
 .employee {
   position: relative;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: transform 0.2s ease;
   cursor: pointer;
   margin-top: 5px;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .employee-body {
@@ -344,19 +345,24 @@ body {
   z-index: 10;
 }
 
-/* Flying Pots */
+/* Flying Pots - Optimized */
 .pot {
   position: absolute;
   font-size: 3rem;
   z-index: 75;
   pointer-events: none;
-  filter: drop-shadow(3px 3px 8px rgba(0, 0, 0, 0.5));
-  animation: pot-wobble 0.3s ease-in-out infinite alternate;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.4));
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.pot:hover {
+  animation: pot-wobble 0.5s ease-in-out infinite alternate;
 }
 
 @keyframes pot-wobble {
-  0% { transform: scale(1) rotate(-2deg); }
-  100% { transform: scale(1.05) rotate(2deg); }
+  0% { transform: scale(1) rotate(-1deg); }
+  100% { transform: scale(1.02) rotate(1deg); }
 }
 
 .pot-trail {
