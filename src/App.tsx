@@ -38,6 +38,18 @@ const EMPLOYEES_DATA = [
   { name: "Zeynep", x: 550, y: 300 },
   { name: "Ali", x: 850, y: 340 },
   { name: "Elif", x: 350, y: 460 },
+  { name: "Burak", x: 650, y: 120 },
+  { name: "Cemre", x: 950, y: 280 },
+  { name: "Deniz", x: 200, y: 400 },
+  { name: "Ece", x: 500, y: 450 },
+  { name: "Furkan", x: 800, y: 480 },
+  { name: "Gizem", x: 1100, y: 350 },
+  { name: "Hakan", x: 300, y: 100 },
+  { name: "İpek", x: 600, y: 380 },
+  { name: "Kaan", x: 900, y: 420 },
+  { name: "Leyla", x: 100, y: 250 },
+  { name: "Murat", x: 400, y: 200 },
+  { name: "Nazlı", x: 700, y: 160 },
 ];
 
 // Settings Screen Component
@@ -50,7 +62,7 @@ const SettingsScreen: React.FC<{
   const [tempEmployeeName, setTempEmployeeName] = useState("");
 
   const addEmployee = () => {
-    if (tempEmployeeName.trim() && gameSettings.employeeNames.length < 8) {
+    if (tempEmployeeName.trim() && gameSettings.employeeNames.length < 20) {
       setGameSettings((prev) => ({
         ...prev,
         employeeNames: [...prev.employeeNames, tempEmployeeName.trim()],
@@ -135,7 +147,7 @@ const SettingsScreen: React.FC<{
 
         {/* Employee Names */}
         <div className="setting-group">
-          <label>👥 Çalışanlar ({gameSettings.employeeNames.length}/8):</label>
+          <label>👥 Çalışanlar ({gameSettings.employeeNames.length}/20):</label>
           <div className="employee-input">
             <input
               type="text"
@@ -149,7 +161,7 @@ const SettingsScreen: React.FC<{
               onClick={addEmployee}
               disabled={
                 !tempEmployeeName.trim() ||
-                gameSettings.employeeNames.length >= 8
+                gameSettings.employeeNames.length >= 20
               }
             >
               ➕
