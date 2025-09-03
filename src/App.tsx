@@ -242,6 +242,151 @@ function App() {
   const animationRef = useRef<number>(0);
   const bossControls = useAnimation();
 
+  // Audio generation functions
+  const createAudioContext = () => {
+    return new (window.AudioContext ||
+      (window as unknown as { webkitAudioContext: AudioContext })
+        .webkitAudioContext)();
+  };
+
+  const playAimSound = () => {
+    try {
+      const audioContext = createAudioContext();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(
+        1200,
+        audioContext.currentTime + 0.1
+      );
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.1
+      );
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
+    } catch (error) {
+      console.log("Audio not supported");
+    }
+  };
+
+  const playThrowSound = () => {
+    try {
+      const audioContext = createAudioContext();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(
+        50,
+        audioContext.currentTime + 0.3
+      );
+
+      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.3
+      );
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      console.log("Audio not supported");
+    }
+  };
+
+  const playHitSound = () => {
+    try {
+      const audioContext = createAudioContext();
+
+      // Create a more complex hit sound with multiple oscillators
+      for (let i = 0; i < 3; i++) {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        const frequencies = [400, 600, 800];
+        oscillator.frequency.setValueAtTime(
+          frequencies[i],
+          audioContext.currentTime
+        );
+        oscillator.frequency.exponentialRampToValueAtTime(
+          frequencies[i] * 0.3,
+          audioContext.currentTime + 0.2
+        );
+
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(
+          0.01,
+          audioContext.currentTime + 0.2
+        );
+
+        oscillator.start(audioContext.currentTime + i * 0.05);
+        oscillator.stop(audioContext.currentTime + 0.2 + i * 0.05);
+      }
+    } catch (error) {
+      console.log("Audio not supported");
+    }
+  };
+
+  const playVictorySound = () => {
+    try {
+      const audioContext = createAudioContext();
+
+      // Create a triumphant victory fanfare with multiple notes
+      const notes = [
+        { freq: 523, time: 0 }, // C5
+        { freq: 659, time: 0.2 }, // E5
+        { freq: 784, time: 0.4 }, // G5
+        { freq: 1047, time: 0.6 }, // C6
+        { freq: 784, time: 0.8 }, // G5
+        { freq: 1047, time: 1.0 }, // C6
+        { freq: 1319, time: 1.2 }, // E6
+        { freq: 1047, time: 1.4 }, // C6
+      ];
+
+      notes.forEach((note, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.setValueAtTime(
+          note.freq,
+          audioContext.currentTime + note.time
+        );
+
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime + note.time);
+        gainNode.gain.linearRampToValueAtTime(
+          0.3,
+          audioContext.currentTime + note.time + 0.1
+        );
+        gainNode.gain.exponentialRampToValueAtTime(
+          0.01,
+          audioContext.currentTime + note.time + 0.3
+        );
+
+        oscillator.start(audioContext.currentTime + note.time);
+        oscillator.stop(audioContext.currentTime + note.time + 0.3);
+      });
+    } catch (error) {
+      console.log("Audio not supported");
+    }
+  };
+
   // Difficulty settings for employee movement
   const getDifficultySettings = (difficulty: string) => {
     switch (difficulty) {
@@ -395,6 +540,9 @@ function App() {
                 setShowConfetti(true);
                 setScreenShake(true);
 
+                // Play hit sound
+                playHitSound();
+
                 // Boss celebration
                 bossControls.start({
                   scale: 1.3,
@@ -462,6 +610,9 @@ function App() {
     setShowPowerBar(true);
     setPowerLevel(0);
     chargingStartTime.current = Date.now();
+
+    // Play aim sound
+    playAimSound();
 
     // Improved charging loop with better stability
     const charge = () => {
@@ -548,6 +699,9 @@ function App() {
     };
 
     setPots((prev) => [...prev, newPot]);
+
+    // Play throw sound
+    playThrowSound();
 
     // Delay power reset to show the final power level briefly
     setTimeout(() => {
@@ -665,6 +819,16 @@ function App() {
 
   const allEmployeesHit =
     employees.length > 0 && employees.every((emp) => emp.hit);
+
+  // Play victory sound when all employees are hit
+  useEffect(() => {
+    if (allEmployeesHit && gameStarted) {
+      // Delay the victory sound slightly to let the last hit sound finish
+      setTimeout(() => {
+        playVictorySound();
+      }, 500);
+    }
+  }, [allEmployeesHit, gameStarted]);
 
   return (
     <div className={`app ${screenShake ? "screen-shake" : ""}`}>
