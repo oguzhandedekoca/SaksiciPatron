@@ -1022,8 +1022,9 @@ function App() {
       setLeaderboard((prev) => {
         const updated = [...prev, newEntry]
           .sort((a, b) => b.score - a.score)
-          .slice(0, 5); // Keep top 5
+          .slice(0, 10); // Keep top 10
         localStorage.setItem("saksici-leaderboard", JSON.stringify(updated));
+        console.log("Local leaderboard updated:", updated);
         return updated;
       });
 
@@ -1549,62 +1550,93 @@ function App() {
 
         <AnimatePresence>
           {allEmployeesHit && (
-            <motion.div
-              className="victory-message"
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{
-                type: "spring",
-                stiffness: 200,
-                damping: 10,
-              }}
-            >
+            <div className="victory-screen">
+              {/* Local Leaderboard - Sol taraf */}
               <motion.div
-                animate={{
-                  scale: 1.1,
-                  rotate: 3,
-                }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                }}
+                className="victory-leaderboard"
+                initial={{ x: -300, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
               >
-                🎉 Hakkını verdin! TÜM ÇALIŞANLARI VURDUN! 🎉
-                <br />
-                Toplam Skor: {score}
-                <br />
-                <span style={{ fontSize: "1.2rem", opacity: 0.8 }}>
-                  Artık gerçek bir patron oldun! 👑
-                </span>
+                <h3>🏆 En İyi 10 Skor</h3>
+                <div className="leaderboard-list">
+                  {console.log("Victory screen leaderboard:", leaderboard)}
+                  {leaderboard.slice(0, 10).map((entry, index) => (
+                    <div
+                      key={index}
+                      className={`leaderboard-item ${
+                        index === 0 ? "first-place" : ""
+                      }`}
+                    >
+                      <span className="rank">#{index + 1}</span>
+                      <span className="name">{entry.name}</span>
+                      <span className="score">{entry.score}</span>
+                    </div>
+                  ))}
+                  {leaderboard.length === 0 && (
+                    <div className="no-scores">Henüz skor yok</div>
+                  )}
+                </div>
               </motion.div>
 
-              <div className="victory-buttons">
-                <motion.button
-                  className="restart-settings-btn"
-                  onClick={() => {
-                    setGameStarted(false);
-                    setShowSettings(true);
-                    resetGame();
+              {/* Victory Message - Sağ taraf */}
+              <motion.div
+                className="victory-message"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 10,
+                }}
+              >
+                <motion.div
+                  animate={{
+                    scale: 1.1,
+                    rotate: 3,
                   }}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: "spring", stiffness: 400 }}
+                  transition={{
+                    duration: 1,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                  }}
                 >
-                  ⚙️ Baştan Başlat
-                </motion.button>
+                  🎉 Hakkını verdin! TÜM ÇALIŞANLARI VURDUN! 🎉
+                  <br />
+                  Toplam Skor: {score}
+                  <br />
+                  <span style={{ fontSize: "1.2rem", opacity: 0.8 }}>
+                    Artık gerçek bir patron oldun! 👑
+                  </span>
+                </motion.div>
 
-                <motion.button
-                  className="restart-game-btn"
-                  onClick={resetGame}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: "spring", stiffness: 400 }}
-                >
-                  🔄 Yeniden Başlat
-                </motion.button>
-              </div>
-            </motion.div>
+                <div className="victory-buttons">
+                  <motion.button
+                    className="restart-settings-btn"
+                    onClick={() => {
+                      setGameStarted(false);
+                      setShowSettings(true);
+                      resetGame();
+                    }}
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
+                    ⚙️ Baştan Başlat
+                  </motion.button>
+
+                  <motion.button
+                    className="restart-game-btn"
+                    onClick={resetGame}
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: "spring", stiffness: 400 }}
+                  >
+                    🔄 Yeniden Başlat
+                  </motion.button>
+                </div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
       </div>
