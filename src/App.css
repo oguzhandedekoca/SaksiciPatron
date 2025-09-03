@@ -469,6 +469,48 @@ body {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+.victory-buttons {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.restart-settings-btn, .restart-game-btn {
+  padding: 15px 25px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.restart-settings-btn {
+  background: linear-gradient(45deg, #4ecdc4, #44a08d);
+  color: white;
+}
+
+.restart-settings-btn:hover {
+  background: linear-gradient(45deg, #5dd9d0, #4fb3a3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+}
+
+.restart-game-btn {
+  background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+  color: white;
+}
+
+.restart-game-btn:hover {
+  background: linear-gradient(45deg, #ff7979, #f55a4e);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
 /* Welcome Screen */
 .welcome-screen {
   position: fixed !important;

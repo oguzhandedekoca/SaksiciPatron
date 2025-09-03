@@ -796,7 +796,7 @@ function App() {
                       ? "#ffaa00"
                       : "#44ff44",
                 }}
-                transition={{ duration: 0.1, ease: "easeOut" }}
+                transition={{ duration: 0.05, ease: "easeOut" }}
               />
             </div>
             <div className="power-label">
@@ -882,6 +882,10 @@ function App() {
               {/* Simple Employee - Just Emoji */}
               <motion.div
                 className={`employee-emoji ${employee.hit ? "hit" : ""}`}
+                animate={{
+                  opacity: employee.hit ? 0.3 : 1,
+                }}
+                transition={{ duration: 0.5 }}
                 whileHover={
                   !employee.hit
                     ? {
@@ -1019,6 +1023,32 @@ function App() {
                   Artık gerçek bir patron oldun! 👑
                 </span>
               </motion.div>
+
+              <div className="victory-buttons">
+                <motion.button
+                  className="restart-settings-btn"
+                  onClick={() => {
+                    setGameStarted(false);
+                    setShowSettings(true);
+                    resetGame();
+                  }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400 }}
+                >
+                  ⚙️ Baştan Başlat
+                </motion.button>
+
+                <motion.button
+                  className="restart-game-btn"
+                  onClick={resetGame}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400 }}
+                >
+                  🔄 Yeniden Başlat
+                </motion.button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
