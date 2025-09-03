@@ -808,76 +808,73 @@ function App() {
           {employees.map((employee, index) => (
             <motion.div
               key={employee.id}
-              className="employee-workspace"
+              className="employee-simple"
               style={{
                 left: employee.x,
                 top: employee.y,
               }}
-              initial={{ scale: 0, rotate: -180, y: 50 }}
+              initial={{ scale: 0, rotate: -180 }}
               animate={{
                 scale: 1,
                 rotate: 0,
-                y: 0,
+                y: employee.hit ? [0, -20, 0] : 0,
               }}
               transition={{
-                delay: index * 0.15,
+                delay: index * 0.1,
                 type: "spring",
-                stiffness: 150,
+                stiffness: 200,
               }}
+              whileHover={
+                !employee.hit
+                  ? {
+                      scale: 1.1,
+                      transition: { duration: 0.2 },
+                    }
+                  : {}
+              }
             >
-              {/* Desk */}
-              <div className="desk">
-                <div className="desk-surface"></div>
-                <div className="desk-legs"></div>
-                <div className="computer">💻</div>
-                <div className="papers">📄</div>
-              </div>
-
-              {/* Employee */}
+              {/* Simple Employee - Just Emoji */}
               <motion.div
-                className={`employee ${employee.hit ? "hit" : ""}`}
+                className={`employee-emoji ${employee.hit ? "hit" : ""}`}
                 whileHover={
                   !employee.hit
                     ? {
-                        scale: 1.05,
+                        scale: 1.1,
                         transition: { duration: 0.2 },
                       }
                     : {}
                 }
               >
-                <div className="employee-body">
-                  <div className="employee-head">
-                    <div className="face">{employee.hit ? "😵" : "😊"}</div>
-                    {employee.hit && (
-                      <motion.div
-                        className="injury-mark"
-                        initial={{ scale: 0, rotate: 45 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        🩹
-                      </motion.div>
-                    )}
-                  </div>
-                  <div className="employee-torso">👔</div>
+                <div className="employee-face">
+                  {employee.hit ? "😵" : "😊"}
                 </div>
-
-                <div className="employee-name">{employee.name}</div>
-
-                <AnimatePresence>
-                  {employee.hit && (
-                    <motion.div
-                      className="hit-effect"
-                      initial={{ opacity: 0, y: 0, scale: 0.5 }}
-                      animate={{ opacity: 1, y: -40, scale: 1 }}
-                      exit={{ opacity: 0, y: -60, scale: 0.5 }}
-                      transition={{ duration: 2 }}
-                    >
-                      VURULDU! 💥
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {employee.hit && (
+                  <motion.div
+                    className="band-aid"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 500 }}
+                  >
+                    🩹
+                  </motion.div>
+                )}
               </motion.div>
+
+              <div className="employee-name">{employee.name}</div>
+
+              <AnimatePresence>
+                {employee.hit && (
+                  <motion.div
+                    className="hit-effect"
+                    initial={{ opacity: 0, y: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, y: -40, scale: 1 }}
+                    exit={{ opacity: 0, y: -60, scale: 0.5 }}
+                    transition={{ duration: 2 }}
+                  >
+                    VURULDU! 💥
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           ))}
         </AnimatePresence>
@@ -920,8 +917,6 @@ function App() {
                 transition={{ duration: 0.1 }}
               >
                 <div className="realistic-pot">
-                  <div className="pot-plant">🌿</div>
-                  <div className="pot-soil">🟫</div>
                   <div className="pot-body">🪴</div>
                 </div>
               </motion.div>

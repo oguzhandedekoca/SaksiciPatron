@@ -193,10 +193,40 @@ body {
   filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.4));
 }
 
-/* Employee Workspace */
-.employee-workspace {
+/* Simple Employee */
+.employee-simple {
   position: absolute;
   z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.employee-emoji {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.employee-face {
+  font-size: 3rem;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+  transition: all 0.3s ease;
+}
+
+.employee-emoji.hit .employee-face {
+  filter: drop-shadow(2px 2px 4px rgba(255, 0, 0, 0.5));
+}
+
+.band-aid {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 1.5rem;
+  z-index: 10;
 }
 
 .desk {
@@ -331,6 +361,7 @@ body {
   border-radius: 12px;
   font-size: 0.9rem;
   border: 1px solid #ffd700;
+  white-space: nowrap;
 }
 
 .hit-effect {
