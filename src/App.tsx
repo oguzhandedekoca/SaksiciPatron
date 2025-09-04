@@ -506,6 +506,7 @@ function App() {
   const [availableLobbies, setAvailableLobbies] = useState<GameLobby[]>([]);
   const [isLoadingLobbies, setIsLoadingLobbies] = useState(false);
   const [isMultiplayerGame, setIsMultiplayerGame] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
   const [ripples, setRipples] = useState<
@@ -825,6 +826,69 @@ function App() {
     }
   };
 
+  // Listen to lobby status changes for multiplayer
+  useEffect(() => {
+    if (
+      currentLobby &&
+      currentLobby.status === "starting" &&
+      !isMultiplayerGame
+    ) {
+      console.log(
+        "Lobby status changed to starting, initializing multiplayer game..."
+      );
+
+      setIsMultiplayerGame(true);
+      setShowLobby(false);
+
+      // Start countdown
+      setCountdown(3);
+      const countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev && prev > 1) {
+            return prev - 1;
+          } else {
+            clearInterval(countdownInterval);
+
+            // Start actual game
+            setGameStarted(true);
+            setGameStartTime(Date.now());
+            setGameTimer(0);
+            setCountdown(null);
+
+            // Start game timer
+            const gameInterval = setInterval(() => {
+              setGameTimer((prev) => prev + 1);
+            }, 1000);
+            setTimerInterval(gameInterval);
+
+            return null;
+          }
+        });
+      }, 1000);
+
+      // Create employees based on lobby settings
+      setGameSettings((prev) => ({
+        ...prev,
+        employeeNames: Array.from(
+          { length: currentLobby.settings.employeeCount },
+          (_, i) => `Çalışan ${i + 1}`
+        ),
+        difficulty: currentLobby.settings.difficulty,
+      }));
+
+      // Subscribe to game state
+      const unsubscribe = subscribeGameState(currentLobby.id, (gameState) => {
+        console.log("Game state updated:", gameState);
+        setCurrentGameState(gameState);
+      });
+
+      return () => {
+        clearInterval(countdownInterval);
+        unsubscribe();
+      };
+    }
+  }, [currentLobby?.status]);
+
   // Cleanup on unmount and load leaderboard
   useEffect(() => {
     // Load leaderboard from localStorage
@@ -840,22 +904,37 @@ function App() {
     };
   }, []);
 
-  // Initialize employees
+  // Initialize employees (only for single player)
   useEffect(() => {
-    setEmployees(
-      EMPLOYEES_DATA.map((emp, index) => ({
-        id: index,
-        x: emp.x,
-        y: emp.y,
-        baseX: emp.x,
-        baseY: emp.y,
-        hit: false,
-        name: emp.name,
-        hitCount: 0,
-        avatar: EMPLOYEE_AVATARS[index % EMPLOYEE_AVATARS.length],
-      }))
-    );
-  }, []);
+    if (!isMultiplayerGame) {
+      setEmployees(
+        EMPLOYEES_DATA.map((emp, index) => ({
+          id: index,
+          x: emp.x,
+          y: emp.y,
+          baseX: emp.x,
+          baseY: emp.y,
+          hit: false,
+          name: emp.name,
+          hitCount: 0,
+          avatar: EMPLOYEE_AVATARS[index % EMPLOYEE_AVATARS.length],
+        }))
+      );
+    }
+  }, [isMultiplayerGame]);
+
+  // Create employees for multiplayer when game settings change
+  useEffect(() => {
+    if (isMultiplayerGame && gameSettings.employeeNames.length > 0) {
+      console.log(
+        "Creating employees for multiplayer:",
+        gameSettings.employeeNames.length
+      );
+      const newEmployees = createEmployeesFromSettings();
+      console.log("Created employees:", newEmployees);
+      setEmployees(newEmployees);
+    }
+  }, [isMultiplayerGame, gameSettings.employeeNames.length]);
 
   // Optimized employee movement animation with difficulty-based speed
   useEffect(() => {
@@ -1413,42 +1492,10 @@ function App() {
     if (currentLobby && currentLobby.hostId === playerId) {
       try {
         console.log("Starting multiplayer game...");
-        await startMultiplayerGame(currentLobby.id);
+        await startMultiplayerGame(currentLobby.id, currentLobby.settings);
 
-        console.log("Setting multiplayer game state...");
-        setIsMultiplayerGame(true);
-        setShowLobby(false);
-        setGameStarted(true);
-        setGameStartTime(Date.now());
-        setGameTimer(0);
-
-        // Start timer for multiplayer
-        const interval = setInterval(() => {
-          setGameTimer((prev) => prev + 1);
-        }, 1000);
-        setTimerInterval(interval);
-
-        // Create employees based on lobby settings
-        setGameSettings((prev) => ({
-          ...prev,
-          employeeNames: Array.from(
-            { length: currentLobby.settings.employeeCount },
-            (_, i) => `Çalışan ${i + 1}`
-          ),
-          difficulty: currentLobby.settings.difficulty,
-        }));
-
-        setTimeout(() => {
-          setEmployees(createEmployeesFromSettings());
-        }, 1000);
-
-        // Subscribe to game state
-        const unsubscribe = subscribeGameState(currentLobby.id, (gameState) => {
-          console.log("Game state updated:", gameState);
-          setCurrentGameState(gameState);
-        });
-
-        return unsubscribe;
+        // Host just triggers the game start, the useEffect will handle the rest
+        console.log("Game start triggered by host");
       } catch (error) {
         console.error("Error starting multiplayer game:", error);
         alert("Oyun başlatılırken hata oluştu!");
@@ -2423,6 +2470,30 @@ function App() {
             onStartGame={startGame}
             onBack={() => setShowSettings(false)}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Countdown overlay for multiplayer */}
+      <AnimatePresence>
+        {countdown !== null && (
+          <motion.div
+            className="countdown-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="countdown-number"
+              key={countdown}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.5, opacity: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            >
+              {countdown === 0 ? "BAŞLA!" : countdown}
+            </motion.div>
+            <p>Multiplayer yarış başlıyor...</p>
+          </motion.div>
         )}
       </AnimatePresence>
 

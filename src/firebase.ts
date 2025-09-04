@@ -351,20 +351,34 @@ export const setPlayerReady = async (
   }
 };
 
-export const startMultiplayerGame = async (lobbyId: string): Promise<void> => {
+export const startMultiplayerGame = async (
+  lobbyId: string,
+  lobbySettings: GameLobby["settings"]
+): Promise<void> => {
   try {
+    console.log("Starting multiplayer game for lobby:", lobbyId);
+
     const statusRef = ref(rtdb, `lobbies/${lobbyId}/status`);
     await set(statusRef, "starting");
 
-    // Create game state
+    // Create game state with lobby settings
     const gameStateRef = ref(rtdb, `games/${lobbyId}`);
-    const gameState: Partial<GameState> = {
+    const gameState: GameState = {
       lobbyId,
-      startTime: Date.now() + 5000, // 5 second countdown
+      players: {}, // Will be populated by each player
+      startTime: Date.now() + 3000, // 3 second countdown
+      timeLimit: lobbySettings.timeLimit,
       status: "countdown",
     };
 
     await set(gameStateRef, gameState);
+    console.log("Game state created:", gameState);
+
+    // Update lobby status to playing after countdown
+    setTimeout(async () => {
+      await set(ref(rtdb, `lobbies/${lobbyId}/status`), "playing");
+      await set(ref(rtdb, `games/${lobbyId}/status`), "playing");
+    }, 3000);
   } catch (error) {
     console.error("Error starting game:", error);
     throw error;
