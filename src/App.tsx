@@ -1,7 +1,24 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import "./App.css";
-import { savePlayerScore, getTopScores, type PlayerScore } from "./firebase";
+import {
+  savePlayerScore,
+  getTopScores,
+  type PlayerScore,
+  type GameLobby,
+  type GameState,
+  createLobby,
+  joinLobby,
+  subscribeLobby,
+  subscribeGameState,
+  setPlayerReady,
+  updateLobbySettings,
+  startMultiplayerGame,
+  updatePlayerGameState,
+  leaveLobby,
+  testRealtimeDatabase,
+  getAvailableLobbies,
+} from "./firebase";
 
 interface Employee {
   id: number;
@@ -95,6 +112,176 @@ const EMPLOYEES_DATA = [
   { name: "Furkan", x: 1050, y: 400 },
   { name: "Tolga", x: 1180, y: 480 },
 ];
+
+// Lobby Screen Component
+const LobbyScreen: React.FC<{
+  lobby: GameLobby;
+  playerId: string;
+  onStartGame: () => void;
+  onLeaveLobby: () => void;
+  onUpdateSettings: (settings: GameLobby["settings"]) => void;
+  onToggleReady: (ready: boolean) => void;
+}> = ({
+  lobby,
+  playerId,
+  onStartGame,
+  onLeaveLobby,
+  onUpdateSettings,
+  onToggleReady,
+}) => {
+  const isHost = lobby.hostId === playerId;
+  const currentPlayer = lobby.players[playerId];
+  const playerList = Object.values(lobby.players);
+  const allReady = playerList.every((p) => p.ready);
+  const canStart = playerList.length >= 2 && allReady;
+
+  return (
+    <motion.div
+      className="lobby-screen"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="lobby-content"
+        initial={{ scale: 0.9, y: 50 }}
+        animate={{ scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300 }}
+      >
+        <h2>🏠 {lobby.name}</h2>
+        <p className="lobby-code">
+          Lobi Kodu: <strong>{lobby.id}</strong>
+        </p>
+
+        {/* Players List */}
+        <div className="players-section">
+          <h3>👥 Oyuncular ({playerList.length}/2)</h3>
+          <div className="players-list">
+            {playerList.map((player) => (
+              <div
+                key={player.id}
+                className={`player-card ${
+                  player.ready ? "ready" : "not-ready"
+                } ${player.id === lobby.hostId ? "host" : ""}`}
+              >
+                <div className="player-info">
+                  <span className="player-name">
+                    {player.name}
+                    {player.id === lobby.hostId && " 👑"}
+                  </span>
+                  <span
+                    className={`ready-status ${player.ready ? "ready" : ""}`}
+                  >
+                    {player.ready ? "✅ Hazır" : "⏳ Bekliyor"}
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            {playerList.length < 2 && (
+              <div className="waiting-player">
+                <span>⏳ Oyuncu bekleniyor...</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Game Settings */}
+        {isHost && (
+          <div className="game-settings">
+            <h3>⚙️ Oyun Ayarları</h3>
+            <div className="settings-row">
+              <label>Çalışan Sayısı:</label>
+              <select
+                value={lobby.settings.employeeCount}
+                onChange={(e) =>
+                  onUpdateSettings({
+                    ...lobby.settings,
+                    employeeCount: parseInt(e.target.value),
+                  })
+                }
+              >
+                {[3, 5, 8, 10, 15].map((count) => (
+                  <option key={count} value={count}>
+                    {count}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="settings-row">
+              <label>Süre Limiti:</label>
+              <select
+                value={lobby.settings.timeLimit}
+                onChange={(e) =>
+                  onUpdateSettings({
+                    ...lobby.settings,
+                    timeLimit: parseInt(e.target.value),
+                  })
+                }
+              >
+                <option value={30}>30 saniye</option>
+                <option value={60}>1 dakika</option>
+                <option value={120}>2 dakika</option>
+                <option value={180}>3 dakika</option>
+              </select>
+            </div>
+
+            <div className="settings-row">
+              <label>Zorluk:</label>
+              <select
+                value={lobby.settings.difficulty}
+                onChange={(e) =>
+                  onUpdateSettings({
+                    ...lobby.settings,
+                    difficulty: e.target.value as "kolay" | "orta" | "zor",
+                  })
+                }
+              >
+                <option value="kolay">😊 Kolay</option>
+                <option value="orta">🤔 Orta</option>
+                <option value="zor">😤 Zor</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* Ready Button */}
+        <div className="lobby-actions">
+          <motion.button
+            className={`ready-btn ${currentPlayer?.ready ? "ready" : ""}`}
+            onClick={() => onToggleReady(!currentPlayer?.ready)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {currentPlayer?.ready ? "✅ Hazırım!" : "⏳ Hazır Değilim"}
+          </motion.button>
+
+          {isHost && (
+            <motion.button
+              className="start-game-btn"
+              onClick={onStartGame}
+              disabled={!canStart}
+              whileHover={canStart ? { scale: 1.05 } : {}}
+              whileTap={canStart ? { scale: 0.95 } : {}}
+            >
+              {canStart ? "🚀 Oyunu Başlat!" : "⏳ Oyuncular Hazırlanıyor..."}
+            </motion.button>
+          )}
+
+          <motion.button
+            className="leave-lobby-btn"
+            onClick={onLeaveLobby}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            🚪 Lobiden Ayrıl
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 // Settings Screen Component
 const SettingsScreen: React.FC<{
@@ -302,6 +489,23 @@ function App() {
     bossGender: "male",
   });
   const [showSettings, setShowSettings] = useState(false);
+
+  // Multiplayer states
+  const [gameMode, setGameMode] = useState<"single" | "multiplayer">("single");
+  const [currentLobby, setCurrentLobby] = useState<GameLobby | null>(null);
+  const [currentGameState, setCurrentGameState] = useState<GameState | null>(
+    null
+  );
+  const [playerId] = useState<string>(
+    () => `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  );
+  const [showLobby, setShowLobby] = useState(false);
+  const [showJoinLobby, setShowJoinLobby] = useState(false);
+  const [lobbyCode, setLobbyCode] = useState("");
+  const [lobbyName, setLobbyName] = useState("");
+  const [availableLobbies, setAvailableLobbies] = useState<GameLobby[]>([]);
+  const [isLoadingLobbies, setIsLoadingLobbies] = useState(false);
+  const [isMultiplayerGame, setIsMultiplayerGame] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
   const [ripples, setRipples] = useState<
@@ -1096,6 +1300,162 @@ function App() {
     setShowSettings(true);
   };
 
+  // Load available lobbies
+  const loadAvailableLobbies = async () => {
+    setIsLoadingLobbies(true);
+    try {
+      const lobbies = await getAvailableLobbies();
+      setAvailableLobbies(lobbies);
+    } catch (error) {
+      console.error("Error loading lobbies:", error);
+    } finally {
+      setIsLoadingLobbies(false);
+    }
+  };
+
+  // Multiplayer functions
+  const createMultiplayerLobby = async () => {
+    if (!gameSettings.bossName.trim()) {
+      alert("Lütfen önce patron adınızı girin!");
+      return;
+    }
+
+    try {
+      console.log("Creating lobby...");
+      const lobbyId = await createLobby(
+        playerId,
+        gameSettings.bossName.trim(),
+        lobbyName.trim() || undefined
+      );
+      console.log("Lobby created with ID:", lobbyId);
+
+      setShowJoinLobby(false);
+      setShowLobby(true);
+
+      // Subscribe to lobby updates
+      const unsubscribe = subscribeLobby(lobbyId, (lobby) => {
+        console.log("Lobby updated:", lobby);
+        setCurrentLobby(lobby);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error("Error creating lobby:", error);
+      alert("Lobi oluşturulurken hata oluştu!");
+    }
+  };
+
+  const joinMultiplayerLobby = async (lobbyId: string) => {
+    if (!gameSettings.bossName.trim()) {
+      alert("Lütfen önce patron adınızı girin!");
+      return;
+    }
+
+    try {
+      const success = await joinLobby(
+        lobbyId,
+        playerId,
+        gameSettings.bossName.trim()
+      );
+      if (success) {
+        setShowJoinLobby(false);
+        setShowLobby(true);
+
+        // Subscribe to lobby updates
+        const unsubscribe = subscribeLobby(lobbyId, (lobby) => {
+          setCurrentLobby(lobby);
+        });
+
+        return unsubscribe;
+      } else {
+        alert("Lobiye katılınamadı!");
+      }
+    } catch (error) {
+      console.error("Error joining lobby:", error);
+      alert("Lobiye katılırken hata oluştu!");
+    }
+  };
+
+  const leaveMultiplayerLobby = async () => {
+    if (currentLobby) {
+      try {
+        await leaveLobby(currentLobby.id, playerId);
+        setCurrentLobby(null);
+        setShowLobby(false);
+        setIsMultiplayerGame(false);
+      } catch (error) {
+        console.error("Error leaving lobby:", error);
+      }
+    }
+  };
+
+  const handleUpdateLobbySettings = async (settings: GameLobby["settings"]) => {
+    if (currentLobby) {
+      try {
+        await updateLobbySettings(currentLobby.id, settings);
+      } catch (error) {
+        console.error("Error updating lobby settings:", error);
+      }
+    }
+  };
+
+  const handleToggleReady = async (ready: boolean) => {
+    if (currentLobby) {
+      try {
+        await setPlayerReady(currentLobby.id, playerId, ready);
+      } catch (error) {
+        console.error("Error setting ready status:", error);
+      }
+    }
+  };
+
+  const handleStartMultiplayerGame = async () => {
+    if (currentLobby && currentLobby.hostId === playerId) {
+      try {
+        console.log("Starting multiplayer game...");
+        await startMultiplayerGame(currentLobby.id);
+
+        console.log("Setting multiplayer game state...");
+        setIsMultiplayerGame(true);
+        setShowLobby(false);
+        setGameStarted(true);
+        setGameStartTime(Date.now());
+        setGameTimer(0);
+
+        // Start timer for multiplayer
+        const interval = setInterval(() => {
+          setGameTimer((prev) => prev + 1);
+        }, 1000);
+        setTimerInterval(interval);
+
+        // Create employees based on lobby settings
+        setGameSettings((prev) => ({
+          ...prev,
+          employeeNames: Array.from(
+            { length: currentLobby.settings.employeeCount },
+            (_, i) => `Çalışan ${i + 1}`
+          ),
+          difficulty: currentLobby.settings.difficulty,
+        }));
+
+        setTimeout(() => {
+          setEmployees(createEmployeesFromSettings());
+        }, 1000);
+
+        // Subscribe to game state
+        const unsubscribe = subscribeGameState(currentLobby.id, (gameState) => {
+          console.log("Game state updated:", gameState);
+          setCurrentGameState(gameState);
+        });
+
+        return unsubscribe;
+      } catch (error) {
+        console.error("Error starting multiplayer game:", error);
+        alert("Oyun başlatılırken hata oluştu!");
+      }
+    }
+  };
+
   const allEmployeesHit =
     employees.length > 0 && employees.every((emp) => emp.hit);
 
@@ -1786,7 +2146,10 @@ function App() {
             <div className="welcome-buttons">
               <motion.button
                 className="start-btn"
-                onClick={openSettings}
+                onClick={() => {
+                  setGameMode("single");
+                  openSettings();
+                }}
                 disabled={isLoading}
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
@@ -1794,7 +2157,24 @@ function App() {
                 whileTap={{ scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
-                Oyunu Başlat! 🎯
+                🎯 Tek Oyuncu
+              </motion.button>
+
+              <motion.button
+                className="multiplayer-btn"
+                onClick={() => {
+                  setGameMode("multiplayer");
+                  setShowJoinLobby(true);
+                  loadAvailableLobbies();
+                }}
+                disabled={isLoading}
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                🎮 Çok Oyuncu
               </motion.button>
 
               <motion.button
@@ -1814,6 +2194,223 @@ function App() {
               </motion.button>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Join Lobby Modal */}
+      <AnimatePresence>
+        {showJoinLobby && (
+          <motion.div
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowJoinLobby(false)}
+          >
+            <motion.div
+              className="join-lobby-modal"
+              initial={{ scale: 0.8, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, y: 50 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2>🎮 Çok Oyuncu Modu</h2>
+
+              <div className="player-name-section">
+                <label>Oyuncu Adın:</label>
+                <input
+                  type="text"
+                  value={gameSettings.bossName}
+                  onChange={(e) =>
+                    setGameSettings((prev) => ({
+                      ...prev,
+                      bossName: e.target.value,
+                    }))
+                  }
+                  placeholder="Adınızı girin..."
+                  maxLength={20}
+                />
+              </div>
+
+              <div className="lobby-actions">
+                {/* Create Lobby Section */}
+                <div className="create-lobby-section">
+                  <input
+                    type="text"
+                    value={lobbyName}
+                    onChange={(e) => setLobbyName(e.target.value)}
+                    placeholder="Lobi adı (opsiyonel)..."
+                    maxLength={30}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      marginBottom: "10px",
+                      border: "2px solid #4ecdc4",
+                      borderRadius: "8px",
+                      background: "rgba(255, 255, 255, 0.1)",
+                      color: "white",
+                      textAlign: "center",
+                    }}
+                  />
+                  <motion.button
+                    className="create-lobby-btn"
+                    onClick={createMultiplayerLobby}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    disabled={!gameSettings.bossName.trim()}
+                  >
+                    🏠 Lobi Oluştur
+                  </motion.button>
+                </div>
+
+                {/* Available Lobbies */}
+                <div className="available-lobbies-section">
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    <h3
+                      style={{
+                        margin: 0,
+                        color: "#4ecdc4",
+                        fontSize: "1.1rem",
+                      }}
+                    >
+                      🎮 Aktif Lobiler
+                    </h3>
+                    <motion.button
+                      onClick={loadAvailableLobbies}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#4ecdc4",
+                        cursor: "pointer",
+                        fontSize: "1.2rem",
+                      }}
+                    >
+                      🔄
+                    </motion.button>
+                  </div>
+
+                  <div className="lobbies-list">
+                    {isLoadingLobbies ? (
+                      <div className="loading-lobbies">
+                        🏺 Lobiler yükleniyor...
+                      </div>
+                    ) : availableLobbies.length > 0 ? (
+                      availableLobbies.map((lobby) => (
+                        <motion.div
+                          key={lobby.id}
+                          className="lobby-item"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => joinMultiplayerLobby(lobby.id)}
+                        >
+                          <div className="lobby-info">
+                            <span className="lobby-name">{lobby.name}</span>
+                            <span className="lobby-details">
+                              👥 {Object.keys(lobby.players).length}/2 | ⏱️{" "}
+                              {lobby.settings.timeLimit}s |
+                              {lobby.settings.difficulty}
+                            </span>
+                          </div>
+                          <span className="join-arrow">→</span>
+                        </motion.div>
+                      ))
+                    ) : (
+                      <div className="no-lobbies">Aktif lobi bulunamadı</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Manual Join Section */}
+                <div className="manual-join-section">
+                  <h4
+                    style={{
+                      color: "#ff6b6b",
+                      margin: "0 0 10px 0",
+                      fontSize: "1rem",
+                    }}
+                  >
+                    Manuel Katılım
+                  </h4>
+                  <div className="join-section">
+                    <input
+                      type="text"
+                      value={lobbyCode}
+                      onChange={(e) => setLobbyCode(e.target.value)}
+                      placeholder="Lobi kodu..."
+                      maxLength={20}
+                    />
+                    <motion.button
+                      className="join-lobby-btn"
+                      onClick={() => joinMultiplayerLobby(lobbyCode)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      disabled={
+                        !gameSettings.bossName.trim() || !lobbyCode.trim()
+                      }
+                    >
+                      🚪 Katıl
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="debug-section">
+                <motion.button
+                  className="test-rtdb-btn"
+                  onClick={async () => {
+                    const result = await testRealtimeDatabase();
+                    alert(
+                      result
+                        ? "✅ RTDB Bağlantısı Başarılı!"
+                        : "❌ RTDB Bağlantısı Başarısız!"
+                    );
+                  }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  style={{
+                    background: "linear-gradient(45deg, #2196f3, #21cbf3)",
+                    fontSize: "0.9rem",
+                    padding: "8px 16px",
+                    marginBottom: "10px",
+                  }}
+                >
+                  🔧 RTDB Test
+                </motion.button>
+              </div>
+
+              <motion.button
+                className="close-btn"
+                onClick={() => setShowJoinLobby(false)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                ❌ Kapat
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Lobby Screen */}
+      <AnimatePresence>
+        {showLobby && currentLobby && (
+          <LobbyScreen
+            lobby={currentLobby}
+            playerId={playerId}
+            onStartGame={handleStartMultiplayerGame}
+            onLeaveLobby={leaveMultiplayerLobby}
+            onUpdateSettings={handleUpdateLobbySettings}
+            onToggleReady={handleToggleReady}
+          />
         )}
       </AnimatePresence>
 
