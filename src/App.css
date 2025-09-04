@@ -857,6 +857,38 @@ body {
   box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
 }
 
+.gender-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.gender-btn {
+  padding: 10px 20px;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.gender-btn:hover {
+  border-color: #4ecdc4;
+  background: rgba(78, 205, 196, 0.1);
+  transform: translateY(-2px);
+}
+
+.gender-btn.active {
+  background: linear-gradient(45deg, #4ecdc4, #44a08d);
+  color: white;
+  border-color: #4ecdc4;
+  transform: scale(1.05);
+}
+
 .difficulty-info {
   font-size: 1rem;
   color: #4ecdc4;

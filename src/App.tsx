@@ -12,12 +12,14 @@ interface Employee {
   hit: boolean;
   name: string;
   hitCount: number;
+  avatar: string;
 }
 
 interface GameSettings {
   bossName: string;
   employeeNames: string[];
   difficulty: "kolay" | "orta" | "zor";
+  bossGender: "male" | "female";
 }
 
 interface Pot {
@@ -29,6 +31,33 @@ interface Pot {
   active: boolean;
   trail: { x: number; y: number }[];
 }
+
+const EMPLOYEE_AVATARS = [
+  "👨‍💻",
+  "👩‍💻",
+  "👨‍🔧",
+  "👩‍🔧",
+  "👨‍🏫",
+  "👩‍🏫",
+  "👨‍⚕️",
+  "👩‍⚕️",
+  "👨‍🍳",
+  "👩‍🍳",
+  "👨‍🎨",
+  "👩‍🎨",
+  "👨‍💼",
+  "👩‍💼",
+  "👨‍🔬",
+  "👩‍🔬",
+  "👨‍🚀",
+  "👩‍🚀",
+  "👨‍🏭",
+  "👩‍🏭",
+  "👨‍🌾",
+  "👩‍🌾",
+  "👨‍⚖️",
+  "👩‍⚖️",
+];
 
 const EMPLOYEES_DATA = [
   // Sol üst bölge
@@ -126,6 +155,26 @@ const SettingsScreen: React.FC<{
             placeholder="Patron ismini girin..."
             maxLength={20}
           />
+        </div>
+
+        <div className="setting-group">
+          <label>👤 Patron Cinsiyeti:</label>
+          <div className="gender-buttons">
+            {(["male", "female"] as const).map((gender) => (
+              <button
+                key={gender}
+                type="button"
+                className={`gender-btn ${
+                  gameSettings.bossGender === gender ? "active" : ""
+                }`}
+                onClick={() =>
+                  setGameSettings((prev) => ({ ...prev, bossGender: gender }))
+                }
+              >
+                {gender === "male" ? "🧔‍♂️ Erkek" : "👩‍💼 Kadın"}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Difficulty */}
@@ -250,6 +299,7 @@ function App() {
     bossName: "",
     employeeNames: [],
     difficulty: "orta",
+    bossGender: "male",
   });
   const [showSettings, setShowSettings] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -598,6 +648,7 @@ function App() {
         hit: false,
         name: emp.name,
         hitCount: 0,
+        avatar: EMPLOYEE_AVATARS[index % EMPLOYEE_AVATARS.length],
       }))
     );
   }, []);
@@ -710,8 +761,8 @@ function App() {
               const dy = pot.y - headY;
               const distance = dx * dx + dy * dy; // Skip sqrt for performance
 
-              if (distance < 900) {
-                // 30px radius squared
+              if (distance < 1600) {
+                // 40px radius squared (increased from 30px for better collision)
                 const comboMultiplier = handleCombo();
                 const basePoints = 1;
                 const criticalHit = Math.random() < 0.2; // 20% critical hit chance
@@ -794,6 +845,15 @@ function App() {
   // Improved power charging system
   const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     if (!gameStarted || isLoading) return;
+
+    // Check if clicking on a hit employee - if so, don't start aiming
+    const target = event.target as HTMLElement;
+    if (
+      target.closest(".employee-emoji") &&
+      target.closest(".employee-emoji")?.classList.contains("hit")
+    ) {
+      return;
+    }
 
     event.preventDefault();
 
@@ -969,6 +1029,7 @@ function App() {
       hit: false,
       name: gameSettings.employeeNames[index] || `Çalışan ${index + 1}`,
       hitCount: 0,
+      avatar: EMPLOYEE_AVATARS[index % EMPLOYEE_AVATARS.length],
     }));
   };
 
@@ -1378,7 +1439,7 @@ function App() {
               ease: "easeInOut",
             }}
           >
-            🧔‍♂️
+            {gameSettings.bossGender === "male" ? "🧔‍♂️" : "👩‍💼"}
           </motion.div>
           <div className="boss-label">
             {gameSettings.bossName
@@ -1449,7 +1510,7 @@ function App() {
                 }
               >
                 <div className="employee-face">
-                  {employee.hit ? "😵" : "😊"}
+                  {employee.hit ? "😵" : employee.avatar}
                 </div>
                 {employee.hit && (
                   <motion.div
