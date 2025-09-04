@@ -233,6 +233,10 @@ function App() {
     { name: string; score: number; time: number }[]
   >([]);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
+  const [gameTimer, setGameTimer] = useState<number>(0);
+  const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(
+    null
+  );
 
   const [globalLeaderboard, setGlobalLeaderboard] = useState<PlayerScore[]>([]);
   const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(false);
@@ -461,7 +465,7 @@ function App() {
     if (!achievements.includes(achievement)) {
       setAchievements((prev) => [...prev, achievement]);
       setShowAchievement(achievement);
-      setTimeout(() => setShowAchievement(null), 3000);
+      setTimeout(() => setShowAchievement(null), 1500); // 3000ms -> 1500ms
     }
   };
 
@@ -542,6 +546,7 @@ function App() {
         timestamp: Date.now(),
         combo: combo,
         achievements: achievements,
+        playerCount: gameSettings.employeeNames.length,
       };
 
       console.log("App: Attempting to save score to Firebase:", playerData);
@@ -980,6 +985,13 @@ function App() {
     setPowerUps([]);
     setActivePowerUp(null);
     setGameStartTime(Date.now());
+    setGameTimer(0);
+
+    // Clear timer interval
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      setTimerInterval(null);
+    }
 
     // Clear any charging animation
     if (chargingAnimationId.current) {
@@ -1002,6 +1014,14 @@ function App() {
       setIsLoading(true);
       setShowPowerBar(false);
       setGameStartTime(Date.now());
+      setGameTimer(0);
+
+      // Start timer
+      const interval = setInterval(() => {
+        setGameTimer((prev) => prev + 1);
+      }, 1000);
+      setTimerInterval(interval);
+
       setTimeout(() => {
         setEmployees(createEmployeesFromSettings());
         setGameStarted(true);
@@ -1023,6 +1043,12 @@ function App() {
     if (allEmployeesHit && gameStarted && score > 0) {
       // Only save if score > 0
       const gameTime = (Date.now() - gameStartTime) / 1000;
+
+      // Stop timer
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        setTimerInterval(null);
+      }
 
       // Check time-based achievements
       if (gameTime <= 60) {
@@ -1116,8 +1142,10 @@ function App() {
                           <div className="player-name">{player.playerName}</div>
                           <div className="player-stats">
                             Skor: {player.score} | Süre:{" "}
-                            {player.time.toFixed(1)}s | Zorluk:{" "}
-                            {player.difficulty}
+                            {player.time.toFixed(1)}s
+                            <br />
+                            Oyuncu: {player.playerCount || "N/A"} | Zorluk:{" "}
+                            {player.difficulty} | Combo: {player.combo}
                           </div>
                         </div>
                         <div className="achievements">
@@ -1217,6 +1245,13 @@ function App() {
           >
             Skor: {score}
           </motion.span>
+
+          {gameStarted && (
+            <div className="timer">
+              ⏱️ {Math.floor(gameTimer / 60)}:
+              {(gameTimer % 60).toString().padStart(2, "0")}
+            </div>
+          )}
 
           {combo > 1 && (
             <motion.div

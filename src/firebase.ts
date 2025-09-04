@@ -41,6 +41,7 @@ export interface PlayerScore {
   timestamp: number;
   combo: number;
   achievements: string[];
+  playerCount: number; // number of employees/players
 }
 
 // Test Firebase connection

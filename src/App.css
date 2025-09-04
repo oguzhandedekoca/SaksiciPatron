@@ -54,6 +54,17 @@ body {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
+.timer {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #4ecdc4;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  padding: 6px 12px;
+  background: rgba(78, 205, 196, 0.2);
+  border-radius: 12px;
+  border: 2px solid rgba(78, 205, 196, 0.5);
+}
+
 .controls {
   display: flex;
   gap: 15px;
