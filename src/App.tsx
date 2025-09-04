@@ -237,6 +237,11 @@ function App() {
   const [globalLeaderboard, setGlobalLeaderboard] = useState<PlayerScore[]>([]);
   const [showGlobalLeaderboard, setShowGlobalLeaderboard] = useState(false);
   const [isLoadingScores, setIsLoadingScores] = useState(false);
+  const [victoryLeaderboard, setVictoryLeaderboard] = useState<PlayerScore[]>(
+    []
+  );
+  const [isLoadingVictoryLeaderboard, setIsLoadingVictoryLeaderboard] =
+    useState(false);
   const [gameSettings, setGameSettings] = useState<GameSettings>({
     bossName: "",
     employeeNames: [],
@@ -502,6 +507,22 @@ function App() {
       alert("Liderlik tablosu yüklenirken hata oluştu. Lütfen tekrar deneyin.");
     } finally {
       setIsLoadingScores(false);
+    }
+  };
+
+  const loadVictoryLeaderboard = async () => {
+    setIsLoadingVictoryLeaderboard(true);
+    try {
+      console.log("Loading victory leaderboard...");
+      const topScores = await getTopScores(10);
+      console.log("Victory top scores loaded:", topScores);
+      setVictoryLeaderboard(topScores);
+    } catch (error) {
+      console.error("Error loading victory leaderboard:", error);
+      // Fallback to local leaderboard if Firebase fails
+      setVictoryLeaderboard([]);
+    } finally {
+      setIsLoadingVictoryLeaderboard(false);
     }
   };
 
@@ -999,7 +1020,8 @@ function App() {
 
   // Play victory sound when all employees are hit
   useEffect(() => {
-    if (allEmployeesHit && gameStarted) {
+    if (allEmployeesHit && gameStarted && score > 0) {
+      // Only save if score > 0
       const gameTime = (Date.now() - gameStartTime) / 1000;
 
       // Check time-based achievements
@@ -1025,6 +1047,9 @@ function App() {
 
       // Save to Firebase
       saveScoreToFirebase();
+
+      // Load victory leaderboard from Firebase
+      loadVictoryLeaderboard();
 
       // Delay the victory sound slightly to let the last hit sound finish
       setTimeout(() => {
@@ -1174,7 +1199,7 @@ function App() {
           }}
           transition={{ duration: 2, repeat: Infinity }}
         >
-          🏺 SAKSICI PATRON 🏺
+          🪴 SAKSICI PATRON 🪴
         </motion.h1>
         <div className="score-board">
           <motion.span
@@ -1553,19 +1578,25 @@ function App() {
               >
                 <h3>🏆 En İyi 10 Skor</h3>
                 <div className="leaderboard-list">
-                  {leaderboard.slice(0, 10).map((entry, index) => (
-                    <div
-                      key={index}
-                      className={`leaderboard-item ${
-                        index === 0 ? "first-place" : ""
-                      }`}
-                    >
-                      <span className="rank">#{index + 1}</span>
-                      <span className="name">{entry.name}</span>
-                      <span className="score">{entry.score}</span>
+                  {isLoadingVictoryLeaderboard ? (
+                    <div className="loading-scores">
+                      <div className="loading-spinner">🏺</div>
+                      <p>Skorlar yükleniyor...</p>
                     </div>
-                  ))}
-                  {leaderboard.length === 0 && (
+                  ) : victoryLeaderboard.length > 0 ? (
+                    victoryLeaderboard.map((entry, index) => (
+                      <div
+                        key={entry.id || index}
+                        className={`leaderboard-item ${
+                          index === 0 ? "first-place" : ""
+                        }`}
+                      >
+                        <span className="rank">#{index + 1}</span>
+                        <span className="name">{entry.playerName}</span>
+                        <span className="score">{entry.score}</span>
+                      </div>
+                    ))
+                  ) : (
                     <div className="no-scores">Henüz skor yok</div>
                   )}
                 </div>

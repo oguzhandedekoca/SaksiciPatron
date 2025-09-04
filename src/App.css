@@ -1533,38 +1533,39 @@ body {
 
 .victory-leaderboard {
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  padding: 20px;
-  width: 300px;
-  max-height: 80vh;
+  border-radius: 15px;
+  padding: 15px;
+  width: 280px;
+  max-height: 60vh;
   overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
 }
 
 .victory-leaderboard h3 {
   color: #333;
   text-align: center;
-  margin-bottom: 15px;
-  font-size: 1.3rem;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
   font-weight: bold;
 }
 
 .victory-leaderboard .leaderboard-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 
 .victory-leaderboard .leaderboard-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: rgba(255, 255, 255, 0.8);
-  border-radius: 10px;
+  border-radius: 8px;
   border: 2px solid transparent;
   transition: all 0.3s ease;
+  font-size: 0.9rem;
 }
 
 .victory-leaderboard .leaderboard-item:hover {
@@ -1582,25 +1583,48 @@ body {
 .victory-leaderboard .rank {
   font-weight: bold;
   color: #666;
-  min-width: 30px;
+  min-width: 25px;
+  font-size: 0.8rem;
 }
 
 .victory-leaderboard .name {
   flex: 1;
-  margin: 0 10px;
+  margin: 0 8px;
   color: #333;
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .victory-leaderboard .score {
   font-weight: bold;
   color: #ff6b6b;
+  font-size: 0.85rem;
 }
 
 .victory-leaderboard .no-scores {
   text-align: center;
   color: #666;
   font-style: italic;
-  padding: 20px;
+  padding: 15px;
+  font-size: 0.9rem;
+}
+
+.victory-leaderboard .loading-scores {
+  text-align: center;
+  color: #666;
+  padding: 15px;
+}
+
+.victory-leaderboard .loading-scores .loading-spinner {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.victory-leaderboard .loading-scores p {
+  font-size: 0.9rem;
+  margin: 0;
 }
 
 /* Victory Screen Mobile */
@@ -1613,8 +1637,9 @@ body {
 
   .victory-leaderboard {
     width: 100%;
-    max-width: 350px;
+    max-width: 320px;
     order: 2;
+    max-height: 50vh;
   }
 
   .victory-message {
