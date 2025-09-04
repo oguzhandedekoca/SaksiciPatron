@@ -229,7 +229,7 @@ function App() {
   const [powerUps, setPowerUps] = useState<any[]>([]);
   const [activePowerUp, setActivePowerUp] = useState<string | null>(null);
   const [powerUpTimer, setPowerUpTimer] = useState<number | null>(null);
-  const [leaderboard, setLeaderboard] = useState<
+  const [, setLeaderboard] = useState<
     { name: string; score: number; time: number }[]
   >([]);
   const [gameStartTime, setGameStartTime] = useState<number>(0);
