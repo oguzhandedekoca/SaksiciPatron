@@ -429,21 +429,30 @@ export const subscribeGameState = (
   const gameRef = ref(rtdb, `games/${lobbyId}`);
   onValue(gameRef, (snapshot) => {
     const gameState = snapshot.val();
-    console.log("Game state received from Firebase:", gameState);
+    console.log(
+      "Game state received from Firebase:",
+      JSON.stringify(gameState, null, 2)
+    );
 
     if (gameState) {
       // Get players from separate path
       const playersRef = ref(rtdb, `games/${lobbyId}/players`);
       onValue(playersRef, (playersSnapshot) => {
         const players = playersSnapshot.val();
-        console.log("Players received from Firebase:", players);
+        console.log(
+          "Players received from Firebase:",
+          JSON.stringify(players, null, 2)
+        );
 
         const completeGameState = {
           ...gameState,
           players: players || {},
         };
 
-        console.log("Complete game state:", completeGameState);
+        console.log(
+          "Complete game state:",
+          JSON.stringify(completeGameState, null, 2)
+        );
         callback(completeGameState);
       });
     } else {

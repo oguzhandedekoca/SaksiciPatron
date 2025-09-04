@@ -847,33 +847,32 @@ function App() {
 
       // Start countdown
       setCountdown(3);
+      let countdownValue = 3;
       const countdownInterval = setInterval(() => {
-        setCountdown((prev) => {
-          console.log("Countdown tick:", prev);
-          if (prev && prev > 0) {
-            return prev - 1;
-          } else {
-            console.log("Countdown finished, starting game...");
-            clearInterval(countdownInterval);
+        countdownValue--;
+        console.log("Countdown tick:", countdownValue);
 
-            // Start actual game
-            console.log("Starting multiplayer game...");
-            setGameStarted(true);
-            setGameStartTime(Date.now());
-            setGameTimer(0);
-            setCountdown(null);
+        if (countdownValue > 0) {
+          setCountdown(countdownValue);
+        } else {
+          console.log("Countdown finished, starting game...");
+          clearInterval(countdownInterval);
+          setCountdown(null);
 
-            // Start game timer
-            const gameInterval = setInterval(() => {
-              setGameTimer((prev) => prev + 1);
-            }, 1000);
-            setTimerInterval(gameInterval);
+          // Start actual game
+          console.log("Starting multiplayer game...");
+          setGameStarted(true);
+          setGameStartTime(Date.now());
+          setGameTimer(0);
 
-            console.log("Multiplayer game started successfully");
+          // Start game timer
+          const gameInterval = setInterval(() => {
+            setGameTimer((prev) => prev + 1);
+          }, 1000);
+          setTimerInterval(gameInterval);
 
-            return null;
-          }
-        });
+          console.log("Multiplayer game started successfully");
+        }
       }, 1000);
 
       // Create employees based on lobby settings
@@ -888,8 +887,11 @@ function App() {
 
       // Subscribe to game state
       const unsubscribe = subscribeGameState(currentLobby.id, (gameState) => {
-        console.log("Game state updated:", gameState);
-        console.log("Players in game state:", gameState?.players);
+        console.log("Game state updated:", JSON.stringify(gameState, null, 2));
+        console.log(
+          "Players in game state:",
+          JSON.stringify(gameState?.players, null, 2)
+        );
         setCurrentGameState(gameState);
       });
 
@@ -1796,12 +1798,18 @@ function App() {
                 (() => {
                   console.log(
                     "Current game state players:",
-                    currentGameState.players
+                    JSON.stringify(currentGameState.players, null, 2)
                   );
                   const players = Object.values(currentGameState.players);
-                  console.log("Players array:", players);
+                  console.log(
+                    "Players array:",
+                    JSON.stringify(players, null, 2)
+                  );
                   const opponent = players.find((p) => p.id !== playerId);
-                  console.log("Opponent found:", opponent);
+                  console.log(
+                    "Opponent found:",
+                    JSON.stringify(opponent, null, 2)
+                  );
 
                   if (opponent) {
                     return (

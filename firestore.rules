@@ -1,12 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read and write access to scores collection
+    // Allow read access to scores for leaderboard, but only authenticated users can write
     match /scores/{document} {
-      allow read, write: if true;
+      allow read: if true; // Anyone can read scores for leaderboard
+      allow write: if request.auth != null; // Only authenticated users can write scores
     }
     
-    // Allow read and write access to test collection
+    // Allow read and write access to lobbies for multiplayer functionality
+    match /lobbies/{document} {
+      allow read, write: if true; // Multiplayer lobbies need open access
+    }
+    
+    // Allow read and write access to game states for real-time multiplayer
+    match /gameStates/{document} {
+      allow read, write: if true; // Game states need open access for real-time updates
+    }
+    
+    // Allow read and write access to test collection (for development)
     match /test/{document} {
       allow read, write: if true;
     }
