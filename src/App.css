@@ -1534,9 +1534,9 @@ body {
 .victory-leaderboard {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 15px;
-  padding: 15px;
-  width: 280px;
-  max-height: 60vh;
+  padding: 18px;
+  width: 320px;
+  max-height: 70vh;
   overflow-y: auto;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
@@ -1545,27 +1545,27 @@ body {
 .victory-leaderboard h3 {
   color: #333;
   text-align: center;
-  margin-bottom: 10px;
-  font-size: 1.1rem;
+  margin-bottom: 12px;
+  font-size: 1.2rem;
   font-weight: bold;
 }
 
 .victory-leaderboard .leaderboard-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .victory-leaderboard .leaderboard-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.8);
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 8px;
   border: 2px solid transparent;
   transition: all 0.3s ease;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .victory-leaderboard .leaderboard-item:hover {
@@ -1582,16 +1582,17 @@ body {
 
 .victory-leaderboard .rank {
   font-weight: bold;
-  color: #666;
-  min-width: 25px;
-  font-size: 0.8rem;
+  color: #555;
+  min-width: 30px;
+  font-size: 0.9rem;
 }
 
 .victory-leaderboard .name {
   flex: 1;
-  margin: 0 8px;
+  margin: 0 10px;
   color: #333;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1600,30 +1601,31 @@ body {
 .victory-leaderboard .score {
   font-weight: bold;
   color: #ff6b6b;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .victory-leaderboard .no-scores {
   text-align: center;
   color: #666;
   font-style: italic;
-  padding: 15px;
-  font-size: 0.9rem;
+  padding: 18px;
+  font-size: 0.95rem;
 }
 
 .victory-leaderboard .loading-scores {
   text-align: center;
   color: #666;
-  padding: 15px;
+  padding: 18px;
 }
 
 .victory-leaderboard .loading-scores .loading-spinner {
-  font-size: 1.5rem;
-  margin-bottom: 8px;
+  font-size: 1.8rem;
+  margin-bottom: 10px;
 }
 
 .victory-leaderboard .loading-scores p {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   margin: 0;
 }
 
@@ -1637,9 +1639,9 @@ body {
 
   .victory-leaderboard {
     width: 100%;
-    max-width: 320px;
+    max-width: 350px;
     order: 2;
-    max-height: 50vh;
+    max-height: 55vh;
   }
 
   .victory-message {
