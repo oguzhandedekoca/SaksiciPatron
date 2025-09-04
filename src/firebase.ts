@@ -18,7 +18,6 @@ import {
   onValue,
   off,
   remove,
-  serverTimestamp,
 } from "firebase/database";
 
 // Your web app's Firebase configuration
@@ -303,7 +302,7 @@ export const joinLobby = async (
   playerName: string
 ): Promise<boolean> => {
   try {
-    const lobbyRef = ref(rtdb, `lobbies/${lobbyId}`);
+    // const lobbyRef = ref(rtdb, `lobbies/${lobbyId}`);
     const playerRef = ref(rtdb, `lobbies/${lobbyId}/players/${playerId}`);
 
     const player: LobbyPlayer = {
@@ -374,6 +373,11 @@ export const startMultiplayerGame = async (
     await set(gameStateRef, gameState);
     console.log("Game state created:", gameState);
 
+    // Initialize players object
+    const playersRef = ref(rtdb, `games/${lobbyId}/players`);
+    await set(playersRef, {});
+    console.log("Players object initialized");
+
     // Update lobby status to playing after countdown
     setTimeout(async () => {
       await set(ref(rtdb, `lobbies/${lobbyId}/status`), "playing");
@@ -391,8 +395,14 @@ export const updatePlayerGameState = async (
   gameState: Partial<PlayerGameState>
 ): Promise<void> => {
   try {
+    console.log("Updating player game state:", {
+      lobbyId,
+      playerId,
+      gameState,
+    });
     const playerStateRef = ref(rtdb, `games/${lobbyId}/players/${playerId}`);
     await set(playerStateRef, gameState);
+    console.log("Player game state updated successfully");
   } catch (error) {
     console.error("Error updating player game state:", error);
     throw error;
@@ -419,7 +429,26 @@ export const subscribeGameState = (
   const gameRef = ref(rtdb, `games/${lobbyId}`);
   onValue(gameRef, (snapshot) => {
     const gameState = snapshot.val();
-    callback(gameState);
+    console.log("Game state received from Firebase:", gameState);
+
+    if (gameState) {
+      // Get players from separate path
+      const playersRef = ref(rtdb, `games/${lobbyId}/players`);
+      onValue(playersRef, (playersSnapshot) => {
+        const players = playersSnapshot.val();
+        console.log("Players received from Firebase:", players);
+
+        const completeGameState = {
+          ...gameState,
+          players: players || {},
+        };
+
+        console.log("Complete game state:", completeGameState);
+        callback(completeGameState);
+      });
+    } else {
+      callback(null);
+    }
   });
 
   return () => off(gameRef);

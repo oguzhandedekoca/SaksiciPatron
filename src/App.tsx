@@ -458,6 +458,11 @@ function App() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pots, setPots] = useState<Pot[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
+
+  // Debug gameStarted state changes
+  useEffect(() => {
+    console.log("gameStarted state changed:", gameStarted);
+  }, [gameStarted]);
   const [combo, setCombo] = useState(0);
   const [comboTimer, setComboTimer] = useState<number | null>(null);
   const [achievements, setAchievements] = useState<string[]>([]);
@@ -491,7 +496,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
 
   // Multiplayer states
-  const [gameMode, setGameMode] = useState<"single" | "multiplayer">("single");
+  const [, setGameMode] = useState<"single" | "multiplayer">("single");
   const [currentLobby, setCurrentLobby] = useState<GameLobby | null>(null);
   const [currentGameState, setCurrentGameState] = useState<GameState | null>(
     null
@@ -844,12 +849,15 @@ function App() {
       setCountdown(3);
       const countdownInterval = setInterval(() => {
         setCountdown((prev) => {
-          if (prev && prev > 1) {
+          console.log("Countdown tick:", prev);
+          if (prev && prev > 0) {
             return prev - 1;
           } else {
+            console.log("Countdown finished, starting game...");
             clearInterval(countdownInterval);
 
             // Start actual game
+            console.log("Starting multiplayer game...");
             setGameStarted(true);
             setGameStartTime(Date.now());
             setGameTimer(0);
@@ -860,6 +868,8 @@ function App() {
               setGameTimer((prev) => prev + 1);
             }, 1000);
             setTimerInterval(gameInterval);
+
+            console.log("Multiplayer game started successfully");
 
             return null;
           }
@@ -879,6 +889,7 @@ function App() {
       // Subscribe to game state
       const unsubscribe = subscribeGameState(currentLobby.id, (gameState) => {
         console.log("Game state updated:", gameState);
+        console.log("Players in game state:", gameState?.players);
         setCurrentGameState(gameState);
       });
 
@@ -984,6 +995,14 @@ function App() {
             const newY = pot.y + pot.vy;
             const newVy = pot.vy + 0.3; // Realistic gravity
 
+            // Multiplayer mode: Bounce off center line
+            let finalX = newX;
+            let finalVx = pot.vx;
+            if (isMultiplayerGame && newX > window.innerWidth / 2) {
+              finalX = window.innerWidth / 2 - (newX - window.innerWidth / 2);
+              finalVx = -Math.abs(pot.vx) * 0.8; // Bounce back with reduced speed
+            }
+
             // Update trail
             const newTrail = [
               { x: pot.x, y: pot.y },
@@ -992,8 +1011,8 @@ function App() {
 
             // Boundary check
             if (
-              newX < -50 ||
-              newX > window.innerWidth + 50 ||
+              finalX < -50 ||
+              finalX > window.innerWidth + 50 ||
               newY > window.innerHeight + 50
             ) {
               return { ...pot, active: false };
@@ -1001,8 +1020,9 @@ function App() {
 
             return {
               ...pot,
-              x: newX,
+              x: finalX,
               y: newY,
+              vx: finalVx,
               vy: newVy,
               trail: newTrail,
             };
@@ -1200,6 +1220,11 @@ function App() {
     const targetX = event.clientX - rect.left;
     const targetY = event.clientY - rect.top;
 
+    // Multiplayer mode: Limit throwing to left half only
+    if (isMultiplayerGame && targetX > rect.width / 2) {
+      return;
+    }
+
     // Add click ripple effect
     const newRipple = {
       id: Date.now(),
@@ -1212,7 +1237,9 @@ function App() {
     }, 1000);
 
     // Calculate launch physics with better power scaling
-    const startX = window.innerWidth / 2;
+    const startX = isMultiplayerGame
+      ? window.innerWidth / 4
+      : window.innerWidth / 2;
     const startY = window.innerHeight - 60;
     const deltaX = targetX - startX;
     const deltaY = targetY - startY;
@@ -1273,8 +1300,8 @@ function App() {
     const employeeCount = gameSettings.employeeNames.length;
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
-    const minDistance = 120; // Minimum mesafe (px)
-    const maxAttempts = 50; // Maksimum deneme sayısı
+    const minDistance = isMultiplayerGame ? 150 : 120; // Multiplayer'da daha fazla mesafe
+    const maxAttempts = 100; // Daha fazla deneme
 
     // Ekranın her yerine random dağıtım
     const randomPositions: { x: number; y: number }[] = [];
@@ -1287,8 +1314,15 @@ function App() {
 
       // Çalışanların birbirine çok yakın olmaması için kontrol
       while (!validPosition && attempts < maxAttempts) {
-        x = Math.random() * (screenWidth - 200) + 100;
-        y = Math.random() * (screenHeight - 300) + 100;
+        // Multiplayer modunda sadece sol yarıya yerleştir
+        if (isMultiplayerGame) {
+          // Sol yarı için daha iyi dağıtım
+          x = Math.random() * (screenWidth / 2 - 200) + 100;
+          y = Math.random() * (screenHeight - 400) + 150;
+        } else {
+          x = Math.random() * (screenWidth - 200) + 100;
+          y = Math.random() * (screenHeight - 300) + 100;
+        }
 
         // Diğer çalışanlarla minimum mesafe kontrolü
         validPosition = randomPositions.every((pos) => {
@@ -1506,6 +1540,42 @@ function App() {
   const allEmployeesHit =
     employees.length > 0 && employees.every((emp) => emp.hit);
 
+  // Update multiplayer game state when score or progress changes
+  useEffect(() => {
+    if (isMultiplayerGame && currentLobby && gameStarted) {
+      const updatePlayerState = async () => {
+        try {
+          const playerState = {
+            id: playerId,
+            name: gameSettings.bossName,
+            score: score,
+            employeesHit: employees.filter((emp) => emp.hit).length,
+            totalEmployees: employees.length,
+            finished: allEmployeesHit,
+            ...(allEmployeesHit && { finishTime: Date.now() }),
+          };
+
+          console.log("Updating player state:", playerState);
+          await updatePlayerGameState(currentLobby.id, playerId, playerState);
+          console.log("Player state updated successfully");
+        } catch (error) {
+          console.error("Error updating player state:", error);
+        }
+      };
+
+      updatePlayerState();
+    }
+  }, [
+    score,
+    employees,
+    allEmployeesHit,
+    isMultiplayerGame,
+    gameStarted,
+    currentLobby,
+    playerId,
+    gameSettings.bossName,
+  ]);
+
   // Play victory sound when all employees are hit
   useEffect(() => {
     if (allEmployeesHit && gameStarted && score > 0) {
@@ -1523,27 +1593,30 @@ function App() {
         unlockAchievement("Patron Kralı");
       }
 
-      // Update local leaderboard
-      const newEntry = {
-        name: gameSettings.bossName,
-        score,
-        time: gameTime,
-      };
+      // For single player, update leaderboard and save to Firebase
+      if (!isMultiplayerGame) {
+        // Update local leaderboard
+        const newEntry = {
+          name: gameSettings.bossName,
+          score,
+          time: gameTime,
+        };
 
-      setLeaderboard((prev) => {
-        const updated = [...prev, newEntry]
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 10); // Keep top 10
-        localStorage.setItem("saksici-leaderboard", JSON.stringify(updated));
-        console.log("Local leaderboard updated:", updated);
-        return updated;
-      });
+        setLeaderboard((prev) => {
+          const updated = [...prev, newEntry]
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10); // Keep top 10
+          localStorage.setItem("saksici-leaderboard", JSON.stringify(updated));
+          console.log("Local leaderboard updated:", updated);
+          return updated;
+        });
 
-      // Save to Firebase
-      saveScoreToFirebase();
+        // Save to Firebase
+        saveScoreToFirebase();
 
-      // Load victory leaderboard from Firebase
-      loadVictoryLeaderboard();
+        // Load victory leaderboard from Firebase
+        loadVictoryLeaderboard();
+      }
 
       // Delay the victory sound slightly to let the last hit sound finish
       setTimeout(() => {
@@ -1697,105 +1770,210 @@ function App() {
         >
           🪴 SAKSICI PATRON 🪴
         </motion.h1>
-        <div className="score-board">
-          <motion.span
-            className="score"
-            key={score}
-            initial={{ scale: 1 }}
-            animate={{ scale: 1.3 }}
-            transition={{ duration: 0.2 }}
-            onAnimationComplete={() => {
-              // Reset scale after animation
-              setTimeout(() => {
-                // This will be handled by the key prop change
-              }, 200);
-            }}
-          >
-            Skor: {score}
-          </motion.span>
-
-          {gameStarted && (
-            <div className="timer">
-              ⏱️ {Math.floor(gameTimer / 60)}:
-              {(gameTimer % 60).toString().padStart(2, "0")}
+        {/* Split-screen layout for multiplayer */}
+        {isMultiplayerGame && gameStarted ? (
+          <div className="split-screen-header">
+            {/* Left side - Current Player */}
+            <div className="player-header left-player">
+              <h3>🎯 {gameSettings.bossName} (SEN)</h3>
+              <div className="player-stats">
+                <span className="score">Skor: {score}</span>
+                <span className="timer">
+                  ⏱️ {Math.floor(gameTimer / 60)}:
+                  {(gameTimer % 60).toString().padStart(2, "0")}
+                </span>
+                <span className="progress">
+                  👥 {employees.filter((emp) => emp.hit).length}/
+                  {employees.length}
+                </span>
+              </div>
             </div>
-          )}
 
-          {combo > 1 && (
-            <motion.div
-              className="combo-display"
-              initial={{ scale: 0, y: -20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0, y: -20 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              COMBO x{combo}!
-            </motion.div>
-          )}
+            {/* Right side - Opponent */}
+            <div className="player-header right-player">
+              {currentGameState &&
+                currentGameState.players &&
+                (() => {
+                  console.log(
+                    "Current game state players:",
+                    currentGameState.players
+                  );
+                  const players = Object.values(currentGameState.players);
+                  console.log("Players array:", players);
+                  const opponent = players.find((p) => p.id !== playerId);
+                  console.log("Opponent found:", opponent);
 
-          {activePowerUp && (
-            <motion.div
-              className="power-up-display"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-            >
-              🚀{" "}
-              {activePowerUp === "rapid"
-                ? "HIZLI ATIŞ"
-                : activePowerUp === "bigPot"
-                ? "BÜYÜK SAKSI"
-                : "ÇOKLU ATIŞ"}
-            </motion.div>
-          )}
-          <div className="controls">
-            <motion.button
-              className="global-leaderboard-header-btn"
-              onClick={() => {
-                loadGlobalLeaderboard();
-                setShowGlobalLeaderboard(true);
+                  if (opponent) {
+                    return (
+                      <div key={opponent.id}>
+                        <h3>🎯 {opponent.name} (RAKİP)</h3>
+                        <div className="player-stats">
+                          <span className="score">Skor: {opponent.score}</span>
+                          <span className="progress">
+                            👥 {opponent.employeesHit}/{opponent.totalEmployees}
+                          </span>
+                          {opponent.finished ? (
+                            <span className="finished">✅ BİTTİ!</span>
+                          ) : (
+                            <span className="playing">🎯 Oynuyor...</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              {(!currentGameState ||
+                !currentGameState.players ||
+                !Object.values(currentGameState.players).find(
+                  (p) => p.id !== playerId
+                )) && (
+                <div>
+                  <h3>🎯 Rakip</h3>
+                  <div className="player-stats">
+                    <span className="score">Bekleniyor...</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Single player header */
+          <div className="score-board">
+            <motion.span
+              className="score"
+              key={score}
+              initial={{ scale: 1 }}
+              animate={{ scale: 1.3 }}
+              transition={{ duration: 0.2 }}
+              onAnimationComplete={() => {
+                // Reset scale after animation
+                setTimeout(() => {
+                  // This will be handled by the key prop change
+                }, 200);
               }}
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400 }}
             >
-              🏆 Global
-            </motion.button>
+              Skor: {score}
+            </motion.span>
 
-            {!gameStarted ? (
-              <motion.button
-                className="start-btn"
-                onClick={startGame}
-                disabled={isLoading}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                {isLoading ? "Hazırlanıyor..." : "Oyunu Başlat! 🎯"}
-              </motion.button>
-            ) : (
-              <motion.button
-                className="reset-btn"
-                onClick={resetGame}
-                disabled={isLoading}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                {isLoading ? "Sıfırlanıyor..." : "Yeniden Başla 🔄"}
-              </motion.button>
+            {gameStarted && (
+              <div className="timer">
+                ⏱️ {Math.floor(gameTimer / 60)}:
+                {(gameTimer % 60).toString().padStart(2, "0")}
+              </div>
             )}
           </div>
-        </div>
+        )}
       </motion.div>
 
+      {combo > 1 && (
+        <motion.div
+          className="combo-display"
+          initial={{ scale: 0, y: -20 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0, y: -20 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          COMBO x{combo}!
+        </motion.div>
+      )}
+
+      {activePowerUp && (
+        <motion.div
+          className="power-up-display"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          exit={{ scale: 0 }}
+        >
+          🚀{" "}
+          {activePowerUp === "rapid"
+            ? "HIZLI ATIŞ"
+            : activePowerUp === "bigPot"
+            ? "BÜYÜK SAKSI"
+            : "ÇOKLU ATIŞ"}
+        </motion.div>
+      )}
+
+      <div className="controls">
+        <motion.button
+          className="global-leaderboard-header-btn"
+          onClick={() => {
+            loadGlobalLeaderboard();
+            setShowGlobalLeaderboard(true);
+          }}
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 400 }}
+        >
+          🏆 Global
+        </motion.button>
+
+        {!gameStarted ? (
+          <motion.button
+            className="start-btn"
+            onClick={startGame}
+            disabled={isLoading}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            {isLoading ? "Hazırlanıyor..." : "Oyunu Başlat! 🎯"}
+          </motion.button>
+        ) : (
+          <motion.button
+            className="reset-btn"
+            onClick={resetGame}
+            disabled={isLoading}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            {isLoading ? "Sıfırlanıyor..." : "Yeniden Başla 🔄"}
+          </motion.button>
+        )}
+      </div>
+
       <div
-        className="game-area"
+        className={`game-area ${isMultiplayerGame ? "multiplayer" : ""}`}
         ref={gameAreaRef}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onContextMenu={handleContextMenu}
       >
+        {/* Opponent View - Right Side */}
+        {isMultiplayerGame && (
+          <div className="opponent-view">
+            <h3>🎯 RAKİP OYUNU</h3>
+            <div className="opponent-stats">
+              {currentGameState && currentGameState.players ? (
+                (() => {
+                  const players = Object.values(currentGameState.players);
+                  const opponent = players.find((p) => p.id !== playerId);
+
+                  if (opponent) {
+                    return (
+                      <>
+                        <span>👤 {opponent.name}</span>
+                        <span>🏆 Skor: {opponent.score}</span>
+                        <span>
+                          👥 Vurulan: {opponent.employeesHit}/
+                          {opponent.totalEmployees}
+                        </span>
+                        <span>
+                          {opponent.finished ? "✅ BİTTİ!" : "🎯 Oynuyor..."}
+                        </span>
+                      </>
+                    );
+                  }
+                  return <span>Rakip bekleniyor...</span>;
+                })()
+              ) : (
+                <span>Rakip bilgileri yükleniyor...</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Power Meter */}
         {showPowerBar && (
           <motion.div
@@ -2069,8 +2247,9 @@ function App() {
           )}
         </AnimatePresence>
 
+        {/* Single Player Victory */}
         <AnimatePresence>
-          {allEmployeesHit && (
+          {allEmployeesHit && !isMultiplayerGame && (
             <div className="victory-screen">
               {/* Local Leaderboard - Sol taraf */}
               <motion.div
@@ -2164,6 +2343,90 @@ function App() {
               </motion.div>
             </div>
           )}
+        </AnimatePresence>
+
+        {/* Multiplayer Victory */}
+        <AnimatePresence>
+          {isMultiplayerGame &&
+            currentGameState &&
+            currentGameState.players &&
+            (() => {
+              const players = Object.values(currentGameState.players);
+              const currentPlayer = players.find((p) => p.id === playerId);
+              const opponent = players.find((p) => p.id !== playerId);
+              const gameFinished = players.some((p) => p.finished);
+              const winner = players.find((p) => p.finished);
+
+              if (gameFinished) {
+                return (
+                  <motion.div
+                    className="multiplayer-victory-screen"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <motion.div
+                      className="multiplayer-victory-content"
+                      initial={{ scale: 0.8, y: 50 }}
+                      animate={{ scale: 1, y: 0 }}
+                      transition={{ type: "spring", stiffness: 200 }}
+                    >
+                      <h2>
+                        {winner?.id === playerId
+                          ? "🎉 KAZANDIN! 🎉"
+                          : "😔 KAYBETTİN"}
+                      </h2>
+
+                      <div className="final-scores">
+                        <div
+                          className={`player-result ${
+                            currentPlayer?.id === playerId ? "current" : ""
+                          }`}
+                        >
+                          <h3>{currentPlayer?.name}</h3>
+                          <p>Skor: {currentPlayer?.score}</p>
+                          <p>
+                            Çalışan: {currentPlayer?.employeesHit}/
+                            {currentPlayer?.totalEmployees}
+                          </p>
+                        </div>
+
+                        <div className="vs">VS</div>
+
+                        <div
+                          className={`player-result ${
+                            opponent?.id === playerId ? "current" : ""
+                          }`}
+                        >
+                          <h3>{opponent?.name}</h3>
+                          <p>Skor: {opponent?.score}</p>
+                          <p>
+                            Çalışan: {opponent?.employeesHit}/
+                            {opponent?.totalEmployees}
+                          </p>
+                        </div>
+                      </div>
+
+                      <motion.button
+                        className="back-to-menu-btn"
+                        onClick={() => {
+                          setIsMultiplayerGame(false);
+                          setGameStarted(false);
+                          setCurrentLobby(null);
+                          setCurrentGameState(null);
+                          resetGame();
+                        }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        🏠 Ana Menü
+                      </motion.button>
+                    </motion.div>
+                  </motion.div>
+                );
+              }
+              return null;
+            })()}
         </AnimatePresence>
       </div>
 
