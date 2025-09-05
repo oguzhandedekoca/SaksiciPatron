@@ -836,11 +836,7 @@ function App() {
 
   // Listen to lobby status changes for multiplayer
   useEffect(() => {
-    if (
-      currentLobby &&
-      currentLobby.status === "starting" &&
-      !isMultiplayerGame
-    ) {
+    if (currentLobby && currentLobby.status === "starting" && !gameStarted) {
       console.log(
         "Lobby status changed to starting, initializing multiplayer game..."
       );
@@ -2444,6 +2440,7 @@ function App() {
                             // Reset game and go back to lobby screen
                             setGameStarted(false);
                             setCurrentGameState(null);
+                            setIsMultiplayerGame(false);
                             setScore(0);
                             setPots([]);
                             setRipples([]);
@@ -2485,6 +2482,8 @@ function App() {
                                 `lobbies/${currentLobby.id}/status`
                               );
                               set(statusRef, "waiting");
+                              // Reset multiplayer game state
+                              setIsMultiplayerGame(false);
                             }
 
                             // Reset employees
