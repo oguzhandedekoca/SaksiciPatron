@@ -534,4 +534,23 @@ export const getAvailableLobbies = async (): Promise<GameLobby[]> => {
   }
 };
 
+export const finishMultiplayerGame = async (lobbyId: string): Promise<void> => {
+  try {
+    console.log("Finishing multiplayer game for lobby:", lobbyId);
+
+    // Update lobby status to finished
+    const statusRef = ref(rtdb, `lobbies/${lobbyId}/status`);
+    await set(statusRef, "finished");
+
+    // Update game status to finished
+    const gameStatusRef = ref(rtdb, `games/${lobbyId}/status`);
+    await set(gameStatusRef, "finished");
+
+    console.log("Game marked as finished");
+  } catch (error) {
+    console.error("Error finishing game:", error);
+    throw error;
+  }
+};
+
 export { db, analytics, rtdb };

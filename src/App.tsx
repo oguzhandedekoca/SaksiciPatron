@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import { ref, set } from "firebase/database";
 import "./App.css";
 import {
   savePlayerScore,
@@ -18,6 +19,8 @@ import {
   leaveLobby,
   testRealtimeDatabase,
   getAvailableLobbies,
+  finishMultiplayerGame,
+  rtdb,
 } from "./firebase";
 
 interface Employee {
@@ -2380,6 +2383,11 @@ function App() {
               const winner = players.find((p) => p.finished);
 
               if (gameFinished) {
+                // Mark game as finished when victory screen shows
+                if (currentLobby) {
+                  finishMultiplayerGame(currentLobby.id);
+                }
+
                 return (
                   <motion.div
                     className="multiplayer-victory-screen"
@@ -2433,7 +2441,7 @@ function App() {
                         <motion.button
                           className="restart-multiplayer-btn"
                           onClick={() => {
-                            // Reset game but stay in multiplayer mode
+                            // Reset game and go back to lobby screen
                             setGameStarted(false);
                             setCurrentGameState(null);
                             setScore(0);
@@ -2464,6 +2472,20 @@ function App() {
                             // Clear timers
                             if (comboTimer) clearTimeout(comboTimer);
                             if (powerUpTimer) clearTimeout(powerUpTimer);
+
+                            // Go back to lobby screen
+                            setShowLobby(true);
+
+                            // Reset player ready status in lobby and set status back to waiting
+                            if (currentLobby) {
+                              handleToggleReady(false);
+                              // Reset lobby status to waiting for new game
+                              const statusRef = ref(
+                                rtdb,
+                                `lobbies/${currentLobby.id}/status`
+                              );
+                              set(statusRef, "waiting");
+                            }
 
                             // Reset employees
                             setTimeout(() => {
