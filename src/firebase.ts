@@ -400,9 +400,13 @@ export const updatePlayerGameState = async (
       playerId,
       gameState,
     });
-    const playerStateRef = ref(rtdb, `games/${lobbyId}/players/${playerId}`);
-    await set(playerStateRef, gameState);
-    console.log("Player game state updated successfully");
+    // Update games path where subscribeGameState reads from
+    const gamePlayerStateRef = ref(
+      rtdb,
+      `games/${lobbyId}/players/${playerId}`
+    );
+    await set(gamePlayerStateRef, gameState);
+    console.log("Player game state updated successfully in games path");
   } catch (error) {
     console.error("Error updating player game state:", error);
     throw error;
@@ -435,18 +439,18 @@ export const subscribeGameState = (
     );
 
     if (gameState) {
-      // Get players from separate path
+      // Get players from games path where updates actually happen
       const playersRef = ref(rtdb, `games/${lobbyId}/players`);
       onValue(playersRef, (playersSnapshot) => {
-        const players = playersSnapshot.val();
+        const players = playersSnapshot.val() || {};
         console.log(
-          "Players received from Firebase:",
+          "Players from games path:",
           JSON.stringify(players, null, 2)
         );
 
         const completeGameState = {
           ...gameState,
-          players: players || {},
+          players: players,
         };
 
         console.log(
@@ -478,26 +482,51 @@ export const leaveLobby = async (
 
 export const getAvailableLobbies = async (): Promise<GameLobby[]> => {
   try {
+    console.log("Getting available lobbies from Firebase...");
     const lobbiesRef = ref(rtdb, "lobbies");
     const snapshot = await new Promise((resolve) => {
       onValue(lobbiesRef, resolve, { onlyOnce: true });
     });
 
     const lobbiesData = (snapshot as any).val();
-    if (!lobbiesData) return [];
+    console.log("Raw lobbies data from Firebase:", lobbiesData);
+
+    if (!lobbiesData) {
+      console.log("No lobbies data found");
+      return [];
+    }
 
     const lobbies: GameLobby[] = [];
-    Object.keys(lobbiesData).forEach((lobbyId) => {
+    const lobbyIds = Object.keys(lobbiesData);
+    console.log("Found lobby IDs:", lobbyIds);
+
+    lobbyIds.forEach((lobbyId) => {
       const lobby = lobbiesData[lobbyId];
-      if (lobby.status === "waiting" && Object.keys(lobby.players).length < 2) {
+      console.log(`Processing lobby ${lobbyId}:`, lobby);
+
+      // Add null checks for lobby and its properties
+      if (
+        lobby &&
+        lobby.status === "waiting" &&
+        lobby.players &&
+        typeof lobby.players === "object" &&
+        Object.keys(lobby.players).length < 2
+      ) {
+        console.log(`Adding lobby ${lobbyId} to available list`);
         lobbies.push(lobby);
+      } else {
+        console.log(
+          `Skipping lobby ${lobbyId} - status: ${lobby?.status}, players: ${
+            lobby?.players ? Object.keys(lobby.players).length : "null"
+          }`
+        );
       }
     });
 
     // Sort by creation time (newest first)
-    lobbies.sort((a, b) => b.createdAt - a.createdAt);
+    lobbies.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
-    console.log("Available lobbies:", lobbies);
+    console.log("Final available lobbies:", lobbies);
     return lobbies;
   } catch (error) {
     console.error("Error getting available lobbies:", error);

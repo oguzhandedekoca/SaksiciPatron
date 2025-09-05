@@ -1419,13 +1419,21 @@ function App() {
   const loadAvailableLobbies = async () => {
     setIsLoadingLobbies(true);
     try {
+      console.log("Loading available lobbies...");
       const lobbies = await getAvailableLobbies();
+      console.log("Loaded lobbies:", lobbies);
       setAvailableLobbies(lobbies);
     } catch (error) {
       console.error("Error loading lobbies:", error);
     } finally {
       setIsLoadingLobbies(false);
     }
+  };
+
+  // Manual lobby refresh only - no automatic refresh
+  const refreshLobbyList = () => {
+    console.log("Manual lobby refresh requested");
+    loadAvailableLobbies();
   };
 
   // Multiplayer functions
@@ -1446,6 +1454,12 @@ function App() {
 
       setShowJoinLobby(false);
       setShowLobby(true);
+
+      // Refresh the lobby list to show the new lobby (for other players)
+      setTimeout(() => {
+        console.log("Refreshing lobby list after creation...");
+        loadAvailableLobbies();
+      }, 2000); // Delay to ensure lobby is saved
 
       // Subscribe to lobby updates
       const unsubscribe = subscribeLobby(lobbyId, (lobby) => {
@@ -2415,20 +2429,68 @@ function App() {
                         </div>
                       </div>
 
-                      <motion.button
-                        className="back-to-menu-btn"
-                        onClick={() => {
-                          setIsMultiplayerGame(false);
-                          setGameStarted(false);
-                          setCurrentLobby(null);
-                          setCurrentGameState(null);
-                          resetGame();
-                        }}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        🏠 Ana Menü
-                      </motion.button>
+                      <div className="multiplayer-victory-buttons">
+                        <motion.button
+                          className="restart-multiplayer-btn"
+                          onClick={() => {
+                            // Reset game but stay in multiplayer mode
+                            setGameStarted(false);
+                            setCurrentGameState(null);
+                            setScore(0);
+                            setPots([]);
+                            setRipples([]);
+                            setScreenShake(false);
+                            setShowConfetti(false);
+                            setPowerLevel(0);
+                            setShowPowerBar(false);
+                            setCombo(0);
+                            setPowerUps([]);
+                            setActivePowerUp(null);
+                            setGameStartTime(Date.now());
+                            setGameTimer(0);
+
+                            // Clear timer interval
+                            if (timerInterval) {
+                              clearInterval(timerInterval);
+                              setTimerInterval(null);
+                            }
+
+                            // Clear any charging animation
+                            if (chargingAnimationId.current) {
+                              cancelAnimationFrame(chargingAnimationId.current);
+                              chargingAnimationId.current = null;
+                            }
+
+                            // Clear timers
+                            if (comboTimer) clearTimeout(comboTimer);
+                            if (powerUpTimer) clearTimeout(powerUpTimer);
+
+                            // Reset employees
+                            setTimeout(() => {
+                              setEmployees(createEmployeesFromSettings());
+                            }, 500);
+                          }}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          🔄 Yeniden Oyna
+                        </motion.button>
+
+                        <motion.button
+                          className="back-to-menu-btn"
+                          onClick={() => {
+                            setIsMultiplayerGame(false);
+                            setGameStarted(false);
+                            setCurrentLobby(null);
+                            setCurrentGameState(null);
+                            resetGame();
+                          }}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          🏠 Ana Menü
+                        </motion.button>
+                      </div>
                     </motion.div>
                   </motion.div>
                 );
@@ -2483,6 +2545,7 @@ function App() {
                 onClick={() => {
                   setGameMode("multiplayer");
                   setShowJoinLobby(true);
+                  // Load lobbies when opening the modal
                   loadAvailableLobbies();
                 }}
                 disabled={isLoading}
@@ -2601,22 +2664,39 @@ function App() {
                       🎮 Aktif Lobiler
                     </h3>
                     <motion.button
-                      onClick={loadAvailableLobbies}
+                      onClick={refreshLobbyList}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
                       style={{
-                        background: "none",
+                        background: "linear-gradient(45deg, #4ecdc4, #44a08d)",
                         border: "none",
-                        color: "#4ecdc4",
+                        color: "white",
                         cursor: "pointer",
-                        fontSize: "1.2rem",
+                        fontSize: "0.9rem",
+                        padding: "8px 12px",
+                        borderRadius: "6px",
+                        fontWeight: "bold",
                       }}
                     >
-                      🔄
+                      🔄 Yenile
                     </motion.button>
                   </div>
 
                   <div className="lobbies-list">
+                    {/* Debug info */}
+                    <div
+                      style={{
+                        fontSize: "0.8rem",
+                        color: "#888",
+                        marginBottom: "10px",
+                        textAlign: "center",
+                      }}
+                    >
+                      {isLoadingLobbies
+                        ? "Yükleniyor..."
+                        : `Toplam ${availableLobbies.length} lobi bulundu`}
+                    </div>
+
                     {isLoadingLobbies ? (
                       <div className="loading-lobbies">
                         🏺 Lobiler yükleniyor...
