@@ -2470,8 +2470,21 @@ function App() {
                               setEmployees(createEmployeesFromSettings());
                             }, 500);
                           }}
-                          whileHover={{ scale: 1.05 }}
+                          whileHover={{ scale: 1.05, y: -2 }}
                           whileTap={{ scale: 0.95 }}
+                          transition={{ type: "spring", stiffness: 400 }}
+                          style={{
+                            background:
+                              "linear-gradient(45deg, #4ecdc4, #44a08d)",
+                            border: "none",
+                            color: "white",
+                            padding: "12px 24px",
+                            borderRadius: "8px",
+                            fontSize: "1rem",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            margin: "0 10px",
+                          }}
                         >
                           🔄 Yeniden Oyna
                         </motion.button>
@@ -2485,8 +2498,21 @@ function App() {
                             setCurrentGameState(null);
                             resetGame();
                           }}
-                          whileHover={{ scale: 1.05 }}
+                          whileHover={{ scale: 1.05, y: -2 }}
                           whileTap={{ scale: 0.95 }}
+                          transition={{ type: "spring", stiffness: 400 }}
+                          style={{
+                            background:
+                              "linear-gradient(45deg, #ff6b6b, #ee5a52)",
+                            border: "none",
+                            color: "white",
+                            padding: "12px 24px",
+                            borderRadius: "8px",
+                            fontSize: "1rem",
+                            fontWeight: "bold",
+                            cursor: "pointer",
+                            margin: "0 10px",
+                          }}
                         >
                           🏠 Ana Menü
                         </motion.button>
