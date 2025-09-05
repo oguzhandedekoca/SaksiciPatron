@@ -142,6 +142,12 @@ body {
   z-index: 150;
 }
 
+/* Multiplayer Power Meter - Position near boss */
+.game-area.multiplayer .power-meter {
+  left: 25%; /* Same as boss position */
+  transform: translateX(-50%);
+}
+
 .power-bar {
   width: 250px;
   height: 20px;

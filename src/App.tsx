@@ -2641,10 +2641,21 @@ function App() {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.8, y: 50 }}
               onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "90%",
+                maxWidth: "800px",
+                maxHeight: "80vh",
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+              }}
             >
               <h2>🎮 Çok Oyuncu Modu</h2>
 
-              <div className="player-name-section">
+              <div
+                className="player-name-section"
+                style={{ marginBottom: "20px" }}
+              >
                 <label>Oyuncu Adın:</label>
                 <input
                   type="text"
@@ -2660,9 +2671,18 @@ function App() {
                 />
               </div>
 
-              <div className="lobby-actions">
+              <div
+                className="lobby-actions"
+                style={{ display: "flex", gap: "20px", flex: 1 }}
+              >
                 {/* Create Lobby Section */}
-                <div className="create-lobby-section">
+                <div
+                  className="create-lobby-section"
+                  style={{ flex: 1, minWidth: "300px" }}
+                >
+                  <h3 style={{ color: "#4ecdc4", marginBottom: "15px" }}>
+                    🏠 Lobi Oluştur
+                  </h3>
                   <input
                     type="text"
                     value={lobbyName}
@@ -2671,13 +2691,14 @@ function App() {
                     maxLength={30}
                     style={{
                       width: "100%",
-                      padding: "10px",
-                      marginBottom: "10px",
+                      padding: "12px",
+                      marginBottom: "15px",
                       border: "2px solid #4ecdc4",
                       borderRadius: "8px",
                       background: "rgba(255, 255, 255, 0.1)",
                       color: "white",
                       textAlign: "center",
+                      fontSize: "1rem",
                     }}
                   />
                   <motion.button
@@ -2686,13 +2707,22 @@ function App() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     disabled={!gameSettings.bossName.trim()}
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      fontSize: "1.1rem",
+                      fontWeight: "bold",
+                    }}
                   >
                     🏠 Lobi Oluştur
                   </motion.button>
                 </div>
 
                 {/* Available Lobbies */}
-                <div className="available-lobbies-section">
+                <div
+                  className="available-lobbies-section"
+                  style={{ flex: 1, minWidth: "300px" }}
+                >
                   <div
                     style={{
                       display: "flex",
@@ -2729,7 +2759,10 @@ function App() {
                     </motion.button>
                   </div>
 
-                  <div className="lobbies-list">
+                  <div
+                    className="lobbies-list"
+                    style={{ maxHeight: "400px", overflowY: "auto" }}
+                  >
                     {/* Debug info */}
                     <div
                       style={{
@@ -2756,80 +2789,59 @@ function App() {
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() => joinMultiplayerLobby(lobby.id)}
+                          style={{
+                            padding: "12px",
+                            marginBottom: "8px",
+                            borderRadius: "8px",
+                            background: "rgba(255, 255, 255, 0.1)",
+                            border: "1px solid #4ecdc4",
+                            cursor: "pointer",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
                         >
                           <div className="lobby-info">
-                            <span className="lobby-name">{lobby.name}</span>
-                            <span className="lobby-details">
+                            <div
+                              className="lobby-name"
+                              style={{
+                                fontWeight: "bold",
+                                marginBottom: "4px",
+                              }}
+                            >
+                              {lobby.name}
+                            </div>
+                            <div
+                              className="lobby-details"
+                              style={{ fontSize: "0.9rem", color: "#ccc" }}
+                            >
                               👥 {Object.keys(lobby.players).length}/2 | ⏱️{" "}
-                              {lobby.settings.timeLimit}s |
+                              {lobby.settings.timeLimit}s |{" "}
                               {lobby.settings.difficulty}
-                            </span>
+                            </div>
                           </div>
-                          <span className="join-arrow">→</span>
+                          <span
+                            className="join-arrow"
+                            style={{ fontSize: "1.2rem" }}
+                          >
+                            →
+                          </span>
                         </motion.div>
                       ))
                     ) : (
-                      <div className="no-lobbies">Aktif lobi bulunamadı</div>
+                      <div
+                        className="no-lobbies"
+                        style={{
+                          textAlign: "center",
+                          padding: "20px",
+                          color: "#888",
+                        }}
+                      >
+                        Aktif lobi bulunamadı
+                      </div>
                     )}
                   </div>
                 </div>
-
-                {/* Manual Join Section */}
-                <div className="manual-join-section">
-                  <h4
-                    style={{
-                      color: "#ff6b6b",
-                      margin: "0 0 10px 0",
-                      fontSize: "1rem",
-                    }}
-                  >
-                    Manuel Katılım
-                  </h4>
-                  <div className="join-section">
-                    <input
-                      type="text"
-                      value={lobbyCode}
-                      onChange={(e) => setLobbyCode(e.target.value)}
-                      placeholder="Lobi kodu..."
-                      maxLength={20}
-                    />
-                    <motion.button
-                      className="join-lobby-btn"
-                      onClick={() => joinMultiplayerLobby(lobbyCode)}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      disabled={
-                        !gameSettings.bossName.trim() || !lobbyCode.trim()
-                      }
-                    >
-                      🚪 Katıl
-                    </motion.button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="debug-section">
-                <motion.button
-                  className="test-rtdb-btn"
-                  onClick={async () => {
-                    const result = await testRealtimeDatabase();
-                    alert(
-                      result
-                        ? "✅ RTDB Bağlantısı Başarılı!"
-                        : "❌ RTDB Bağlantısı Başarısız!"
-                    );
-                  }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  style={{
-                    background: "linear-gradient(45deg, #2196f3, #21cbf3)",
-                    fontSize: "0.9rem",
-                    padding: "8px 16px",
-                    marginBottom: "10px",
-                  }}
-                >
-                  🔧 RTDB Test
-                </motion.button>
               </div>
 
               <motion.button
