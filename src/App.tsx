@@ -17,7 +17,6 @@ import {
   startMultiplayerGame,
   updatePlayerGameState,
   leaveLobby,
-  testRealtimeDatabase,
   getAvailableLobbies,
   finishMultiplayerGame,
   rtdb,
@@ -509,7 +508,6 @@ function App() {
   );
   const [showLobby, setShowLobby] = useState(false);
   const [showJoinLobby, setShowJoinLobby] = useState(false);
-  const [lobbyCode, setLobbyCode] = useState("");
   const [lobbyName, setLobbyName] = useState("");
   const [availableLobbies, setAvailableLobbies] = useState<GameLobby[]>([]);
   const [isLoadingLobbies, setIsLoadingLobbies] = useState(false);
