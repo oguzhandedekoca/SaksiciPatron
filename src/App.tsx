@@ -110,7 +110,7 @@ const EMPLOYEES_DATA = [
   // Sağ bölge
   { name: "Emre", x: 1100, y: 150 },
   { name: "Selin", x: 1200, y: 220 },
-  { name: "Okan", x: 1150, y: 320 },
+  { name: "Samet", x: 1150, y: 320 },
   { name: "Furkan", x: 1050, y: 400 },
   { name: "Tolga", x: 1180, y: 480 },
 ];
@@ -172,9 +172,11 @@ const LobbyScreen: React.FC<{
                     {player.id === lobby.hostId && " 👑"}
                   </span>
                   <span
-                    className={`ready-status ${player.ready ? "ready" : ""}`}
+                    className={`ready-status ${
+                      player.ready ? "ready" : "not-ready"
+                    }`}
                   >
-                    {player.ready ? "✅ Hazır" : "⏳ Bekliyor"}
+                    {player.ready ? "✅ Hazır" : "🎯 Hazır Ol"}
                   </span>
                 </div>
               </div>
@@ -251,12 +253,14 @@ const LobbyScreen: React.FC<{
         {/* Ready Button */}
         <div className="lobby-actions">
           <motion.button
-            className={`ready-btn ${currentPlayer?.ready ? "ready" : ""}`}
+            className={`ready-btn ${
+              currentPlayer?.ready ? "ready" : "not-ready"
+            }`}
             onClick={() => onToggleReady(!currentPlayer?.ready)}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            {currentPlayer?.ready ? "✅ Hazırım!" : "⏳ Hazır Değilim"}
+            {currentPlayer?.ready ? "✅ Hazırım!" : "🎯 Hazır Ol"}
           </motion.button>
 
           {isHost && (
@@ -842,6 +846,9 @@ function App() {
       setIsMultiplayerGame(true);
       setShowLobby(false);
 
+      // Add multiplayer mode class to body to prevent scrolling
+      document.body.classList.add("multiplayer-mode");
+
       // Start countdown
       setCountdown(3);
       let countdownValue = 3;
@@ -911,6 +918,8 @@ function App() {
       if (chargingAnimationId.current) {
         cancelAnimationFrame(chargingAnimationId.current);
       }
+      // Clean up multiplayer mode class
+      document.body.classList.remove("multiplayer-mode");
     };
   }, []);
 
@@ -1509,6 +1518,9 @@ function App() {
         setCurrentLobby(null);
         setShowLobby(false);
         setIsMultiplayerGame(false);
+
+        // Remove multiplayer mode class from body
+        document.body.classList.remove("multiplayer-mode");
       } catch (error) {
         console.error("Error leaving lobby:", error);
       }
@@ -2482,6 +2494,11 @@ function App() {
                               set(statusRef, "waiting");
                               // Reset multiplayer game state
                               setIsMultiplayerGame(false);
+
+                              // Remove multiplayer mode class from body
+                              document.body.classList.remove(
+                                "multiplayer-mode"
+                              );
                             }
 
                             // Reset employees
@@ -2515,6 +2532,10 @@ function App() {
                             setGameStarted(false);
                             setCurrentLobby(null);
                             setCurrentGameState(null);
+
+                            // Remove multiplayer mode class from body
+                            document.body.classList.remove("multiplayer-mode");
+
                             resetGame();
                           }}
                           whileHover={{ scale: 1.05, y: -2 }}
