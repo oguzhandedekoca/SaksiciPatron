@@ -879,6 +879,29 @@ function App() {
         }
       }, 1000);
 
+      // Initialize player state immediately when countdown starts
+      const initializePlayerState = async () => {
+        try {
+          const playerState = {
+            id: playerId,
+            name: gameSettings.bossName,
+            score: 0,
+            employeesHit: 0,
+            totalEmployees: currentLobby.settings.employeeCount,
+            finished: false,
+          };
+
+          console.log("Initializing player state:", playerState);
+          await updatePlayerGameState(currentLobby.id, playerId, playerState);
+          console.log("Player state initialized successfully");
+        } catch (error) {
+          console.error("Error initializing player state:", error);
+        }
+      };
+
+      // Initialize player state
+      initializePlayerState();
+
       // Create employees based on lobby settings
       setGameSettings((prev) => ({
         ...prev,
@@ -2451,7 +2474,6 @@ function App() {
                             // Reset game and go back to lobby screen
                             setGameStarted(false);
                             setCurrentGameState(null);
-                            setIsMultiplayerGame(false);
                             setScore(0);
                             setPots([]);
                             setRipples([]);
@@ -2481,25 +2503,25 @@ function App() {
                             if (comboTimer) clearTimeout(comboTimer);
                             if (powerUpTimer) clearTimeout(powerUpTimer);
 
+                            // Remove multiplayer mode class from body
+                            document.body.classList.remove("multiplayer-mode");
+
                             // Go back to lobby screen
                             setShowLobby(true);
 
-                            // Reset player ready status in lobby and set status back to waiting
+                            // Reset lobby status to waiting for new game
                             if (currentLobby) {
-                              handleToggleReady(false);
                               // Reset lobby status to waiting for new game
                               const statusRef = ref(
                                 rtdb,
                                 `lobbies/${currentLobby.id}/status`
                               );
                               set(statusRef, "waiting");
-                              // Reset multiplayer game state
-                              setIsMultiplayerGame(false);
 
-                              // Remove multiplayer mode class from body
-                              document.body.classList.remove(
-                                "multiplayer-mode"
-                              );
+                              // Only reset ready status if not host (host stays ready)
+                              if (currentLobby.hostId !== playerId) {
+                                handleToggleReady(false);
+                              }
                             }
 
                             // Reset employees
