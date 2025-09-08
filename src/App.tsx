@@ -34,6 +34,7 @@ interface Employee {
   name: string;
   hitCount: number;
   avatar: string;
+  frozen?: boolean; // For freeze powerup effect
 }
 
 interface GameSettings {
@@ -51,6 +52,9 @@ interface Pot {
   vy: number;
   active: boolean;
   trail: { x: number; y: number }[];
+  isJoker?: boolean; // For joker powerup
+  isExplosive?: boolean; // For explosive powerup
+  powerUpType?: string; // Store active powerup type for visual effects
 }
 
 const EMPLOYEE_AVATARS = [
@@ -559,6 +563,10 @@ function App() {
   const [powerUps, setPowerUps] = useState<any[]>([]);
   const [activePowerUp, setActivePowerUp] = useState<string | null>(null);
   const [powerUpTimer, setPowerUpTimer] = useState<number | null>(null);
+  const [level, setLevel] = useState(1);
+  const [jokerShots, setJokerShots] = useState(0); // Joker için kalan atış sayısı
+  const [levelProgress, setLevelProgress] = useState(0); // Seviye ilerlemesi
+  const [showLevelUp, setShowLevelUp] = useState(false); // Seviye atlama animasyonu
   const [, setLeaderboard] = useState<
     { name: string; score: number; time: number }[]
   >([]);
@@ -610,6 +618,7 @@ function App() {
   const [showPowerBar, setShowPowerBar] = useState(false);
   const chargingStartTime = useRef<number>(0);
   const chargingAnimationId = useRef<number | null>(null);
+  const achievementTimeout = useRef<NodeJS.Timeout | null>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>(0);
   const bossControls = useAnimation();
@@ -808,26 +817,75 @@ function App() {
     return Math.min(newCombo, 5); // Max 5x multiplier
   };
 
+  // Level system
+  const checkLevelUp = (newScore: number) => {
+    const requiredScore = level * 100; // Her seviye için 100 puan gerekli
+    if (newScore >= requiredScore) {
+      const newLevel = Math.floor(newScore / 100) + 1;
+      if (newLevel > level) {
+        setLevel(newLevel);
+        setShowLevelUp(true);
+        setTimeout(() => setShowLevelUp(false), 3000);
+
+        // Seviye atlama bonusu
+        unlockAchievement(`Seviye ${newLevel} Patronu!`);
+
+        // Seviye atlama bonus powerup spawn
+        if (Math.random() < 0.8) {
+          spawnPowerUp();
+        }
+      }
+    }
+    setLevelProgress((newScore % 100) / 100);
+  };
+
   // Achievement system
   const unlockAchievement = (achievement: string) => {
     if (!achievements.includes(achievement)) {
       setAchievements((prev) => [...prev, achievement]);
       setShowAchievement(achievement);
-      setTimeout(() => setShowAchievement(null), 1500); // 3000ms -> 1500ms
+
+      // Clear any existing timeout and set new one
+      if (achievementTimeout.current) {
+        clearTimeout(achievementTimeout.current);
+      }
+
+      // Use a more reliable timeout with fallback
+      achievementTimeout.current = setTimeout(() => {
+        setShowAchievement(null);
+        achievementTimeout.current = null;
+      }, 1500); // 1.5 seconds duration - shorter for better UX
+
+      // Fallback timeout to ensure it disappears
+      setTimeout(() => {
+        setShowAchievement(null);
+        if (achievementTimeout.current) {
+          clearTimeout(achievementTimeout.current);
+          achievementTimeout.current = null;
+        }
+      }, 3000); // 3 seconds maximum fallback
     }
   };
 
   // Power-up system
   const spawnPowerUp = () => {
-    if (powerUps.length < 2 && Math.random() < 0.3) {
-      const powerUpTypes = ["rapid", "bigPot", "multiShot"];
+    if (powerUps.length < 2 && Math.random() < 0.4) {
+      // 3-4 vuruşta bir çıkacak şekilde
+      const powerUpTypes = [
+        "doubleShot", // Çift saksı atma
+        "freeze", // Dondurma
+      ];
       const type =
         powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
       const newPowerUp = {
-        id: Date.now(),
+        id: Date.now() + Math.random(),
         type,
         x: Math.random() * (window.innerWidth - 100) + 50,
         y: Math.random() * (window.innerHeight - 200) + 100,
+        active: true,
+        collected: false,
+        vx: (Math.random() - 0.5) * 2, // Hafif hareket
+        vy: (Math.random() - 0.5) * 2,
       };
       setPowerUps((prev) => [...prev, newPowerUp]);
     }
@@ -837,10 +895,22 @@ function App() {
     setActivePowerUp(type);
     if (powerUpTimer) clearTimeout(powerUpTimer);
 
+    // Different durations and effects for different powerups
+    let duration = 3000; // 3 seconds for both powerups
+    switch (type) {
+      case "doubleShot":
+        duration = 3000; // 3 seconds for double shot
+        setJokerShots(6); // 6 atış hakkı (3 saniye boyunca 2li atış)
+        break;
+      case "freeze":
+        duration = 3000; // 3 seconds for freeze
+        break;
+    }
+
     const timer = setTimeout(() => {
       setActivePowerUp(null);
-    }, 5000); // 5 seconds duration
-
+      setJokerShots(0); // Reset joker shots
+    }, duration);
     setPowerUpTimer(timer as unknown as number);
   };
 
@@ -1068,12 +1138,18 @@ function App() {
         prevEmployees.map((emp) => {
           if (emp.hit) return emp;
 
-          const time = Date.now() * difficultySettings.movementSpeed;
-          const offsetX =
-            Math.sin(time + emp.id) * difficultySettings.movementRange;
-          const offsetY =
-            Math.cos(time * 0.6 + emp.id) *
-            (difficultySettings.movementRange * 0.6);
+          // Power-up effects on employee movement
+          let movementSpeed = difficultySettings.movementSpeed;
+          let movementRange = difficultySettings.movementRange;
+
+          if (activePowerUp === "freeze") {
+            // Freeze employees completely
+            return emp; // Don't move at all
+          }
+
+          const time = Date.now() * movementSpeed;
+          const offsetX = Math.sin(time + emp.id) * movementRange;
+          const offsetY = Math.cos(time * 0.6 + emp.id) * (movementRange * 0.6);
 
           return {
             ...emp,
@@ -1102,15 +1178,23 @@ function App() {
 
             const newX = pot.x + pot.vx;
             const newY = pot.y + pot.vy;
-            const newVy = pot.vy + 0.3; // Realistic gravity
+
+            // Power-up effects on gravity
+            let gravity = 0.3; // Default gravity
+
+            const newVy = pot.vy + gravity;
 
             // Multiplayer mode: Bounce off center line
             let finalX = newX;
             let finalVx = pot.vx;
+            let finalVy = newVy;
+
             if (isMultiplayerGame && newX > window.innerWidth / 2) {
               finalX = window.innerWidth / 2 - (newX - window.innerWidth / 2);
               finalVx = -Math.abs(pot.vx) * 0.8; // Bounce back with reduced speed
             }
+
+            // No special bounce effects for our simplified powerups
 
             // Update trail
             const newTrail = [
@@ -1132,11 +1216,53 @@ function App() {
               x: finalX,
               y: newY,
               vx: finalVx,
-              vy: newVy,
+              vy: finalVy,
               trail: newTrail,
             };
           })
           .filter((pot) => pot.active);
+      });
+
+      // Update powerups movement and check pot collisions
+      setPowerUps((prevPowerUps) => {
+        return prevPowerUps
+          .map((powerUp) => {
+            if (!powerUp.active || powerUp.collected) return powerUp;
+
+            const newX = powerUp.x + (powerUp.vx || 0);
+            const newY = powerUp.y + (powerUp.vy || 0);
+
+            // Powerup movement only - collision detection moved to pot physics
+
+            // Bounce off screen edges
+            let finalX = newX;
+            let finalY = newY;
+            let finalVx = powerUp.vx || 0;
+            let finalVy = powerUp.vy || 0;
+
+            if (newX < 50 || newX > window.innerWidth - 50) {
+              finalX = newX < 50 ? 50 : window.innerWidth - 50;
+              finalVx = -finalVx * 0.8;
+            }
+            if (newY < 50 || newY > window.innerHeight - 150) {
+              finalY = newY < 50 ? 50 : window.innerHeight - 150;
+              finalVy = -finalVy * 0.8;
+            }
+
+            // Auto-remove after 15 seconds
+            if (Date.now() - powerUp.id > 15000) {
+              return { ...powerUp, active: false };
+            }
+
+            return {
+              ...powerUp,
+              x: finalX,
+              y: finalY,
+              vx: finalVx,
+              vy: finalVy,
+            };
+          })
+          .filter((powerUp) => powerUp.active && !powerUp.collected);
       });
 
       animationRef.current = requestAnimationFrame(animate);
@@ -1173,15 +1299,21 @@ function App() {
               const dy = pot.y - headY;
               const distance = dx * dx + dy * dy; // Skip sqrt for performance
 
+              // Standard collision detection
               if (distance < 1600) {
-                // 40px radius squared (increased from 30px for better collision)
+                // 40px radius squared
                 const comboMultiplier = handleCombo();
                 const basePoints = 1;
+
                 const criticalHit = Math.random() < 0.2; // 20% critical hit chance
                 const points =
                   basePoints * comboMultiplier * (criticalHit ? 2 : 1);
 
-                setScore((prev) => prev + points);
+                setScore((prev) => {
+                  const newScore = prev + points;
+                  checkLevelUp(newScore);
+                  return newScore;
+                });
                 setShowConfetti(true);
                 setScreenShake(true);
 
@@ -1199,8 +1331,8 @@ function App() {
                   unlockAchievement("Keskin Nişancı");
                 }
 
-                // Spawn power-up occasionally
-                if (Math.random() < 0.15) {
+                // Spawn power-up occasionally (40% chance - 3-4 vuruşta bir)
+                if (Math.random() < 0.4) {
                   spawnPowerUp();
                 }
 
@@ -1263,6 +1395,47 @@ function App() {
     collisionAnimationId = requestAnimationFrame(checkCollisions);
     return () => cancelAnimationFrame(collisionAnimationId);
   }, [employees, bossControls, gameStarted]);
+
+  // Powerup collision detection with pots
+  useEffect(() => {
+    if (!gameStarted) return;
+
+    const checkPowerupCollisions = () => {
+      // Get current state values
+      setPots((currentPots) => {
+        setPowerUps((currentPowerUps) => {
+          const activePots = currentPots.filter((pot) => pot.active);
+          const activePowerUps = currentPowerUps.filter(
+            (powerUp) => powerUp.active && !powerUp.collected
+          );
+
+          for (const pot of activePots) {
+            for (const powerUp of activePowerUps) {
+              const dx = pot.x - powerUp.x;
+              const dy = pot.y - powerUp.y;
+              const distance = dx * dx + dy * dy;
+
+              if (distance < 2500) {
+                // 50px collision radius
+                console.log("Powerup collected by pot:", powerUp.type);
+                activatePowerUp(powerUp.type);
+                return currentPowerUps.map((p) =>
+                  p.id === powerUp.id
+                    ? { ...p, active: false, collected: true }
+                    : p
+                );
+              }
+            }
+          }
+          return currentPowerUps;
+        });
+        return currentPots;
+      });
+    };
+
+    const interval = setInterval(checkPowerupCollisions, 16); // 60 FPS
+    return () => clearInterval(interval);
+  }, [gameStarted]);
 
   // Improved power charging system
   const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -1364,8 +1537,11 @@ function App() {
     const deltaY = targetY - startY;
 
     const angle = Math.atan2(deltaY, deltaX);
-    const basePower = 12;
-    const powerBonus = powerLevel * 18; // More balanced power scaling
+    let basePower = 12;
+    let powerBonus = powerLevel * 18; // More balanced power scaling
+
+    // No special power effects for our simplified powerups
+
     const totalPower = basePower + powerBonus;
 
     const vx = Math.cos(angle) * totalPower;
@@ -1379,9 +1555,33 @@ function App() {
       vy,
       active: true,
       trail: [],
+      isJoker: activePowerUp === "joker", // Mark as joker pot
+      powerUpType: activePowerUp, // Store powerup type for visual effects
     };
 
     setPots((prev) => [...prev, newPot]);
+
+    // If doubleShot is active and has shots remaining, create a second pot with slight angle variation
+    if (activePowerUp === "doubleShot" && jokerShots > 0) {
+      const jokerAngle = angle + (Math.random() - 0.5) * 0.3; // ±0.15 radian variation
+      const jokerVx = Math.cos(jokerAngle) * totalPower;
+      const jokerVy = Math.sin(jokerAngle) * totalPower;
+
+      const doublePot: Pot = {
+        id: Date.now() + 1,
+        x: startX + (Math.random() - 0.5) * 20, // Slight position variation
+        y: startY,
+        vx: jokerVx,
+        vy: jokerVy,
+        active: true,
+        trail: [],
+        isJoker: true,
+        powerUpType: "doubleShot",
+      };
+
+      setPots((prev) => [...prev, doublePot]);
+      setJokerShots((prev) => Math.max(0, prev - 1)); // Decrease joker shots
+    }
 
     // Track pot throw event
     trackGameEvent("pot_thrown", {
@@ -1492,6 +1692,10 @@ function App() {
     setCombo(0);
     setPowerUps([]);
     setActivePowerUp(null);
+    setJokerShots(0);
+    setLevel(1);
+    setLevelProgress(0);
+    setShowLevelUp(false);
     setGameStartTime(Date.now());
     setGameTimer(0);
 
@@ -1510,6 +1714,11 @@ function App() {
     // Clear timers
     if (comboTimer) clearTimeout(comboTimer);
     if (powerUpTimer) clearTimeout(powerUpTimer);
+    if (achievementTimeout.current) {
+      clearTimeout(achievementTimeout.current);
+      achievementTimeout.current = null;
+    }
+    setShowAchievement(null); // Clear any floating achievements
 
     setTimeout(() => {
       setEmployees(createEmployeesFromSettings());
@@ -1953,6 +2162,13 @@ function App() {
               <h3>🎯 {gameSettings.bossName} (SEN)</h3>
               <div className="player-stats">
                 <span className="score">Skor: {score}</span>
+                <span className="level">Seviye: {level}</span>
+                <div className="level-progress">
+                  <div
+                    className="level-progress-bar"
+                    style={{ width: `${levelProgress * 100}%` }}
+                  ></div>
+                </div>
                 <span className="timer">
                   ⏱️ {Math.floor(gameTimer / 60)}:
                   {(gameTimer % 60).toString().padStart(2, "0")}
@@ -2037,6 +2253,16 @@ function App() {
               Skor: {score}
             </motion.span>
 
+            <div className="level-info">
+              <span className="level">Seviye: {level}</span>
+              <div className="level-progress">
+                <div
+                  className="level-progress-bar"
+                  style={{ width: `${levelProgress * 100}%` }}
+                ></div>
+              </div>
+            </div>
+
             {gameStarted && (
               <div className="timer">
                 ⏱️ {Math.floor(gameTimer / 60)}:
@@ -2067,11 +2293,11 @@ function App() {
           exit={{ scale: 0 }}
         >
           🚀{" "}
-          {activePowerUp === "rapid"
-            ? "HIZLI ATIŞ"
-            : activePowerUp === "bigPot"
-            ? "BÜYÜK SAKSI"
-            : "ÇOKLU ATIŞ"}
+          {activePowerUp === "doubleShot"
+            ? `ÇİFT ATIŞ (${jokerShots} ATIŞ)`
+            : activePowerUp === "freeze"
+            ? "DONDURMA"
+            : "BİLİNMEYEN"}
         </motion.div>
       )}
 
@@ -2234,7 +2460,9 @@ function App() {
           {employees.map((employee, index) => (
             <motion.div
               key={employee.id}
-              className="employee-simple"
+              className={`employee-simple ${
+                activePowerUp === "freeze" ? "frozen" : ""
+              }`}
               style={{
                 left: employee.x,
                 top: employee.y,
@@ -2333,14 +2561,16 @@ function App() {
 
               {/* Realistic Pot */}
               <motion.div
-                className="pot"
+                className={`pot ${
+                  pot.powerUpType ? `pot-${pot.powerUpType}` : ""
+                }`}
                 style={{
                   left: pot.x,
                   top: pot.y,
                 }}
                 initial={{ scale: 0, rotate: 0 }}
                 animate={{
-                  scale: 1,
+                  scale: pot.powerUpType === "bigPot" ? 1.5 : 1,
                   rotate: pot.vx * 2, // Slight rotation based on velocity
                 }}
                 exit={{ scale: 0, opacity: 0 }}
@@ -2378,6 +2608,7 @@ function App() {
             <motion.div
               key={powerUp.id}
               className="power-up"
+              data-type={powerUp.type}
               style={{
                 left: powerUp.x,
                 top: powerUp.y,
@@ -2386,24 +2617,21 @@ function App() {
               animate={{ scale: 1, rotate: 360 }}
               exit={{ scale: 0, opacity: 0 }}
               transition={{ duration: 0.5 }}
-              onClick={() => {
-                activatePowerUp(powerUp.type);
-                setPowerUps((prev) => prev.filter((p) => p.id !== powerUp.id));
-              }}
+              // Powerups are now collected by hitting with pots, not clicking
             >
               <div className="power-up-icon">
-                {powerUp.type === "rapid"
-                  ? "⚡"
-                  : powerUp.type === "bigPot"
-                  ? "🪣"
-                  : "🎯"}
+                {powerUp.type === "doubleShot"
+                  ? "🎯"
+                  : powerUp.type === "freeze"
+                  ? "❄️"
+                  : "❓"}
               </div>
               <div className="power-up-label">
-                {powerUp.type === "rapid"
-                  ? "Hızlı"
-                  : powerUp.type === "bigPot"
-                  ? "Büyük"
-                  : "Çoklu"}
+                {powerUp.type === "doubleShot"
+                  ? "Çift Atış"
+                  : powerUp.type === "freeze"
+                  ? "Dondur"
+                  : "Bilinmeyen"}
               </div>
             </motion.div>
           ))}
@@ -2423,6 +2651,25 @@ function App() {
               <div className="achievement-text">
                 <div className="achievement-title">BAŞARIM!</div>
                 <div className="achievement-name">{showAchievement}</div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Level Up Notification */}
+        <AnimatePresence>
+          {showLevelUp && (
+            <motion.div
+              className="level-up-notification"
+              initial={{ scale: 0, y: -100 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0, y: -100 }}
+              transition={{ type: "spring", stiffness: 200 }}
+            >
+              <div className="level-up-icon">⭐</div>
+              <div className="level-up-text">
+                <div className="level-up-title">SEVİYE ATLADIN!</div>
+                <div className="level-up-level">Seviye {level}</div>
               </div>
             </motion.div>
           )}

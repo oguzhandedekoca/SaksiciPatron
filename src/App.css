@@ -2555,3 +2555,253 @@ body.multiplayer-mode {
     padding: 20px;
   }
 }
+
+/* Level System Styles */
+.level-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  margin: 10px 0;
+}
+
+.level {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.level-progress {
+  width: 120px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.level-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b6b, #ffd700, #4ecdc4);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+/* Level Up Notification */
+.level-up-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #333;
+  padding: 20px 30px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border: 3px solid #ff6b6b;
+  animation: levelUpPulse 0.5s ease-in-out;
+}
+
+@keyframes levelUpPulse {
+  0% { transform: translate(-50%, -50%) scale(0.8); }
+  50% { transform: translate(-50%, -50%) scale(1.1); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.level-up-icon {
+  font-size: 2.5rem;
+  animation: levelUpRotate 1s ease-in-out infinite;
+}
+
+@keyframes levelUpRotate {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg); }
+  75% { transform: rotate(10deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.level-up-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.level-up-title {
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.level-up-level {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #ff6b6b;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Power-up Movement Animation */
+.power-up {
+  position: absolute;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.power-up:hover {
+  transform: scale(1.1);
+  filter: brightness(1.2);
+}
+
+.power-up-icon {
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 5px;
+  animation: powerUpFloat 2s ease-in-out infinite;
+}
+
+@keyframes powerUpFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+.power-up-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-align: center;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+/* Joker Power-up Special Effect */
+.power-up[data-type="joker"] {
+  animation: jokerGlow 1s ease-in-out infinite alternate;
+}
+
+@keyframes jokerGlow {
+  0% { filter: drop-shadow(0 0 5px #ffd700); }
+  100% { filter: drop-shadow(0 0 15px #ff6b6b); }
+}
+
+/* Employee Freeze Effect */
+.employee-simple.frozen {
+  filter: hue-rotate(200deg) brightness(0.8) saturate(0.5);
+  animation: freezeEffect 1s ease-in-out infinite;
+}
+
+@keyframes freezeEffect {
+  0%, 100% { 
+    filter: hue-rotate(200deg) brightness(0.8) saturate(0.5) drop-shadow(0 0 5px #4ecdc4);
+  }
+  50% { 
+    filter: hue-rotate(200deg) brightness(0.9) saturate(0.7) drop-shadow(0 0 10px #45b7aa);
+  }
+}
+
+/* Power-up Pot Effects */
+.pot-bigPot {
+  filter: drop-shadow(0 0 10px #ff6b6b);
+}
+
+.pot-explosive {
+  filter: drop-shadow(0 0 15px #ff4757);
+  animation: explosiveGlow 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes explosiveGlow {
+  0% { filter: drop-shadow(0 0 15px #ff4757); }
+  100% { filter: drop-shadow(0 0 25px #ff3838); }
+}
+
+.pot-laser {
+  filter: drop-shadow(0 0 10px #ff3838);
+  animation: laserPulse 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes laserPulse {
+  0% { filter: drop-shadow(0 0 10px #ff3838); }
+  100% { filter: drop-shadow(0 0 20px #ff6b6b); }
+}
+
+.pot-magnet {
+  filter: drop-shadow(0 0 8px #3742fa);
+  animation: magnetFloat 1s ease-in-out infinite;
+}
+
+@keyframes magnetFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+.pot-bounce {
+  filter: drop-shadow(0 0 8px #2ed573);
+  animation: bounceFloat 0.8s ease-in-out infinite;
+}
+
+@keyframes bounceFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-5px) scale(1.05); }
+}
+
+.pot-speed {
+  filter: drop-shadow(0 0 12px #ffa502);
+  animation: speedTrail 0.2s ease-in-out infinite;
+}
+
+@keyframes speedTrail {
+  0% { filter: drop-shadow(0 0 12px #ffa502); }
+  100% { filter: drop-shadow(0 0 20px #ff6348); }
+}
+
+.pot-joker {
+  filter: drop-shadow(0 0 15px #ffd700);
+  animation: jokerMagic 1s ease-in-out infinite;
+}
+
+@keyframes jokerMagic {
+  0% { filter: drop-shadow(0 0 15px #ffd700); }
+  50% { filter: drop-shadow(0 0 20px #ff6b6b); }
+  100% { filter: drop-shadow(0 0 15px #ffd700); }
+}
+
+/* Mobile Responsive for Level System */
+@media (max-width: 768px) {
+  .level-info {
+    margin: 5px 0;
+  }
+  
+  .level {
+    font-size: 1rem;
+  }
+  
+  .level-progress {
+    width: 100px;
+    height: 6px;
+  }
+  
+  .level-up-notification {
+    padding: 15px 20px;
+    gap: 10px;
+  }
+  
+  .level-up-icon {
+    font-size: 2rem;
+  }
+  
+  .level-up-title {
+    font-size: 1.2rem;
+  }
+  
+  .level-up-level {
+    font-size: 1.5rem;
+  }
+}
