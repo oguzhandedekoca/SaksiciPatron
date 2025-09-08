@@ -1,6 +1,37 @@
-# React + TypeScript + Vite
+# Saksici Patron - React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Bu proje, React + TypeScript + Vite kullanılarak geliştirilmiş bir oyun uygulamasıdır. Google Analytics entegrasyonu ile kullanıcı etkileşimleri takip edilmektedir.
+
+## Google Analytics Kurulumu
+
+Projeyi çalıştırmadan önce Google Analytics'i yapılandırmanız gerekmektedir:
+
+1. **Google Analytics Hesabı Oluşturun:**
+
+   - [Google Analytics](https://analytics.google.com/) adresine gidin
+   - Yeni bir property oluşturun
+   - Measurement ID'nizi alın (G-XXXXXXXXXX formatında)
+
+2. **Environment Variable Ayarlayın:**
+
+   - Proje kök dizininde `.env` dosyası oluşturun
+   - Aşağıdaki satırı ekleyin:
+
+   ```
+   VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+   ```
+
+   - `G-XXXXXXXXXX` yerine kendi Measurement ID'nizi yazın
+
+3. **Geliştirme Ortamında Test:**
+   - `.env` dosyasında `VITE_GA_MEASUREMENT_ID=GA_MEASUREMENT_ID` olarak bırakırsanız, Google Analytics devre dışı kalır
+   - Bu durumda console'da analytics hataları görmeyeceksiniz
+
+## Özellikler
+
+- **Oyun Takibi:** Oyun başlatma, pot fırlatma, çalışan vurma ve oyun tamamlama olayları takip edilir
+- **Kullanıcı Etkileşimleri:** Sayfa görüntüleme ve buton tıklamaları takip edilir
+- **Performans Metrikleri:** Oyun süresi, skor ve zorluk seviyesi analiz edilir
 
 Currently, two official plugins are available:
 
@@ -13,9 +44,9 @@ If you are developing a production application, we recommend updating the config
 
 ```js
 export default tseslint.config([
-  globalIgnores(['dist']),
+  globalIgnores(["dist"]),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     extends: [
       // Other configs...
 
@@ -30,40 +61,40 @@ export default tseslint.config([
     ],
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
         tsconfigRootDir: import.meta.dirname,
       },
       // other options...
     },
   },
-])
+]);
 ```
 
 You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
 ```js
 // eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+import reactX from "eslint-plugin-react-x";
+import reactDom from "eslint-plugin-react-dom";
 
 export default tseslint.config([
-  globalIgnores(['dist']),
+  globalIgnores(["dist"]),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     extends: [
       // Other configs...
       // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
+      reactX.configs["recommended-typescript"],
       // Enable lint rules for React DOM
       reactDom.configs.recommended,
     ],
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
         tsconfigRootDir: import.meta.dirname,
       },
       // other options...
     },
   },
-])
+]);
 ```

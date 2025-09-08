@@ -21,6 +21,7 @@ import {
   finishMultiplayerGame,
   rtdb,
 } from "./firebase";
+import { initGA, trackPageView, trackGameEvent } from "./analytics";
 
 interface Employee {
   id: number;
@@ -536,6 +537,15 @@ function App() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pots, setPots] = useState<Pot[]>([]);
   const [gameStarted, setGameStarted] = useState(false);
+
+  // Initialize Google Analytics
+  useEffect(() => {
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (gaId && gaId !== "GA_MEASUREMENT_ID") {
+      initGA(gaId);
+      trackPageView("/", "Saksici Patron - Ana Sayfa");
+    }
+  }, []);
 
   // Debug gameStarted state changes
   useEffect(() => {
@@ -1197,6 +1207,16 @@ function App() {
                 setTimeout(() => setShowConfetti(false), 2000);
                 setTimeout(() => setScreenShake(false), 250);
 
+                // Track employee hit event
+                trackGameEvent("employee_hit", {
+                  employee_name: employee.name,
+                  employee_id: employee.id,
+                  hit_count: employee.hitCount + 1,
+                  pot_x: pot.x,
+                  pot_y: pot.y,
+                  score: score + 10,
+                });
+
                 // Update the hit employee
                 setEmployees((prevEmployees) =>
                   prevEmployees.map((emp) =>
@@ -1347,6 +1367,16 @@ function App() {
 
     setPots((prev) => [...prev, newPot]);
 
+    // Track pot throw event
+    trackGameEvent("pot_thrown", {
+      power_level: powerLevel,
+      target_x: targetX,
+      target_y: targetY,
+      velocity_x: vx,
+      velocity_y: vy,
+      total_power: totalPower,
+    });
+
     // Play throw sound
     playThrowSound();
 
@@ -1473,6 +1503,14 @@ function App() {
 
   const startGame = () => {
     if (gameSettings.bossName && gameSettings.employeeNames.length > 0) {
+      // Track game start event
+      trackGameEvent("game_started", {
+        boss_name: gameSettings.bossName,
+        difficulty: gameSettings.difficulty,
+        employee_count: gameSettings.employeeNames.length,
+        boss_gender: gameSettings.bossGender,
+      });
+
       setIsLoading(true);
       setShowPowerBar(false);
       setGameStartTime(Date.now());
@@ -1691,9 +1729,18 @@ function App() {
   // Play victory sound when all employees are hit
   useEffect(() => {
     if (allEmployeesHit && gameStarted && score > 0) {
-      // Only save if score > 0
+      // Track game completion event
       const gameTime = (Date.now() - gameStartTime) / 1000;
+      trackGameEvent("game_completed", {
+        final_score: score,
+        game_time: gameTime,
+        difficulty: gameSettings.difficulty,
+        boss_name: gameSettings.bossName,
+        employee_count: gameSettings.employeeNames.length,
+        is_multiplayer: isMultiplayerGame,
+      });
 
+      // Only save if score > 0
       // Stop timer
       if (timerInterval) {
         clearInterval(timerInterval);
