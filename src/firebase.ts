@@ -9,6 +9,9 @@ import {
   query,
   orderBy,
   limit,
+  deleteDoc,
+  doc,
+  writeBatch,
 } from "firebase/firestore";
 import {
   getDatabase,
@@ -197,20 +200,38 @@ export const getTopScores = async (limitCount: number = 10) => {
     const scoresRef = collection(db, "scores");
     console.log("Firebase: Collection reference created:", scoresRef);
 
-    const q = query(scoresRef, orderBy("score", "desc"), limit(limitCount));
+    // Get more scores than needed to account for deduplication
+    const q = query(scoresRef, orderBy("score", "desc"), limit(limitCount * 3));
     console.log("Firebase: Query created:", q);
 
     const querySnapshot = await getDocs(q);
     console.log("Firebase: Query executed, snapshot size:", querySnapshot.size);
 
-    const scores: PlayerScore[] = [];
+    const allScores: PlayerScore[] = [];
     querySnapshot.forEach((doc) => {
       console.log("Firebase: Document ID:", doc.id, "Data:", doc.data());
-      scores.push({ id: doc.id, ...doc.data() } as PlayerScore);
+      allScores.push({ id: doc.id, ...doc.data() } as PlayerScore);
     });
 
-    console.log("Firebase: Final scores array:", scores);
-    return scores;
+    // Deduplicate by player name - keep only the highest score for each player
+    const playerMap = new Map<string, PlayerScore>();
+
+    allScores.forEach((score) => {
+      const playerName = score.playerName.toLowerCase().trim();
+      const existingScore = playerMap.get(playerName);
+
+      if (!existingScore || score.score > existingScore.score) {
+        playerMap.set(playerName, score);
+      }
+    });
+
+    // Convert back to array and sort by score
+    const uniqueScores = Array.from(playerMap.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limitCount);
+
+    console.log("Firebase: Deduplicated scores array:", uniqueScores);
+    return uniqueScores;
   } catch (error) {
     console.error("Firebase: Error getting scores: ", error);
     console.error("Firebase: Error details:", {
@@ -226,17 +247,128 @@ export const getTopScores = async (limitCount: number = 10) => {
 export const getTopScoresByTime = async (limitCount: number = 10) => {
   try {
     const scoresRef = collection(db, "scores");
-    const q = query(scoresRef, orderBy("time", "asc"), limit(limitCount));
+    // Get more scores than needed to account for deduplication
+    const q = query(scoresRef, orderBy("time", "asc"), limit(limitCount * 3));
     const querySnapshot = await getDocs(q);
 
-    const scores: PlayerScore[] = [];
+    const allScores: PlayerScore[] = [];
     querySnapshot.forEach((doc) => {
-      scores.push({ id: doc.id, ...doc.data() } as PlayerScore);
+      allScores.push({ id: doc.id, ...doc.data() } as PlayerScore);
     });
 
-    return scores;
+    // Deduplicate by player name - keep only the best time for each player
+    const playerMap = new Map<string, PlayerScore>();
+
+    allScores.forEach((score) => {
+      const playerName = score.playerName.toLowerCase().trim();
+      const existingScore = playerMap.get(playerName);
+
+      if (!existingScore || score.time < existingScore.time) {
+        playerMap.set(playerName, score);
+      }
+    });
+
+    // Convert back to array and sort by time
+    const uniqueScores = Array.from(playerMap.values())
+      .sort((a, b) => a.time - b.time)
+      .slice(0, limitCount);
+
+    return uniqueScores;
   } catch (error) {
     console.error("Error getting scores by time: ", error);
+    throw error;
+  }
+};
+
+// Clean up duplicate scores - keep only the highest score for each player
+export const cleanupDuplicateScores = async () => {
+  try {
+    console.log("Firebase: Starting cleanup of duplicate scores...");
+
+    // Get all scores
+    const scoresRef = collection(db, "scores");
+    const q = query(scoresRef, orderBy("score", "desc"));
+    const querySnapshot = await getDocs(q);
+
+    const allScores: PlayerScore[] = [];
+    querySnapshot.forEach((doc) => {
+      allScores.push({ id: doc.id, ...doc.data() } as PlayerScore);
+    });
+
+    console.log(`Firebase: Found ${allScores.length} total scores`);
+
+    // Group scores by player name
+    const playerScores = new Map<string, PlayerScore[]>();
+
+    allScores.forEach((score) => {
+      const playerName = score.playerName.toLowerCase().trim();
+      if (!playerScores.has(playerName)) {
+        playerScores.set(playerName, []);
+      }
+      playerScores.get(playerName)!.push(score);
+    });
+
+    // Find scores to delete (keep only the highest score for each player)
+    const scoresToDelete: string[] = [];
+
+    playerScores.forEach((scores, playerName) => {
+      if (scores.length > 1) {
+        // Sort by score descending and keep the first one
+        scores.sort((a, b) => b.score - a.score);
+        const highestScore = scores[0];
+
+        // Mark all other scores for deletion
+        scores.slice(1).forEach((score) => {
+          if (score.id) {
+            scoresToDelete.push(score.id);
+          }
+        });
+
+        console.log(
+          `Firebase: Player ${playerName} has ${
+            scores.length
+          } scores, keeping highest (${highestScore.score}), deleting ${
+            scores.length - 1
+          } others`
+        );
+      }
+    });
+
+    console.log(
+      `Firebase: Found ${scoresToDelete.length} duplicate scores to delete`
+    );
+
+    // Delete duplicate scores in batches
+    if (scoresToDelete.length > 0) {
+      const batch = writeBatch(db);
+      const batchSize = 500; // Firestore batch limit
+
+      for (let i = 0; i < scoresToDelete.length; i += batchSize) {
+        const batchScores = scoresToDelete.slice(i, i + batchSize);
+
+        batchScores.forEach((scoreId) => {
+          const scoreRef = doc(db, "scores", scoreId);
+          batch.delete(scoreRef);
+        });
+
+        await batch.commit();
+        console.log(
+          `Firebase: Deleted batch ${
+            Math.floor(i / batchSize) + 1
+          } of duplicate scores`
+        );
+      }
+
+      console.log(
+        `Firebase: Cleanup completed. Deleted ${scoresToDelete.length} duplicate scores`
+      );
+    } else {
+      console.log("Firebase: No duplicate scores found");
+    }
+
+    return scoresToDelete.length;
+  } catch (error) {
+    console.error("Firebase: Error cleaning up duplicate scores:", error);
     throw error;
   }
 };

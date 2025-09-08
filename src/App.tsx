@@ -5,6 +5,7 @@ import "./App.css";
 import {
   savePlayerScore,
   getTopScores,
+  cleanupDuplicateScores,
   type PlayerScore,
   type GameLobby,
   type GameState,
@@ -849,6 +850,21 @@ function App() {
     setIsLoadingScores(true);
     try {
       console.log("Loading global leaderboard...");
+
+      // Clean up duplicate scores first (only run occasionally to avoid performance issues)
+      const shouldCleanup = Math.random() < 0.1; // 10% chance to run cleanup
+      if (shouldCleanup) {
+        console.log("Running duplicate score cleanup...");
+        try {
+          await cleanupDuplicateScores();
+        } catch (cleanupError) {
+          console.warn(
+            "Cleanup failed, continuing with leaderboard load:",
+            cleanupError
+          );
+        }
+      }
+
       const topScores = await getTopScores(10);
       console.log("Top scores loaded:", topScores);
       setGlobalLeaderboard(topScores);
