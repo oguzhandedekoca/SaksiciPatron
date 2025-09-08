@@ -1324,9 +1324,10 @@ function App() {
       while (!validPosition && attempts < maxAttempts) {
         // Multiplayer modunda sadece sol yarıya yerleştir
         if (isMultiplayerGame) {
-          // Sol yarı için daha iyi dağıtım
+          // Sol yarı için daha iyi dağıtım - patron ile üst üste gelmemesi için daha yukarıda
           x = Math.random() * (screenWidth / 2 - 200) + 100;
-          y = Math.random() * (screenHeight - 400) + 150;
+          // Çalışanları daha yukarıda konumlandır (patron bottom: 60px, power meter bottom: 200px)
+          y = Math.random() * (screenHeight - 600) + 200;
         } else {
           x = Math.random() * (screenWidth - 200) + 100;
           y = Math.random() * (screenHeight - 300) + 100;
