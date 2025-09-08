@@ -205,7 +205,7 @@ const LobbyScreen: React.FC<{
                   })
                 }
               >
-                {[3, 5, 8, 10, 15].map((count) => (
+                {[3, 5, 8, 10, 15, 20].map((count) => (
                   <option key={count} value={count}>
                     {count}
                   </option>
