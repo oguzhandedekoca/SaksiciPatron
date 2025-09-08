@@ -308,10 +308,33 @@ const SettingsScreen: React.FC<{
     }
   };
 
+  const generateRandomEmployees = (count?: number) => {
+    const maxCount =
+      count || Math.min(20, 20 - gameSettings.employeeNames.length);
+    if (maxCount <= 0) return;
+
+    const randomNames = Array.from({ length: maxCount }, (_, i) => {
+      const existingCount = gameSettings.employeeNames.length;
+      return `Çalışan ${existingCount + i + 1}`;
+    });
+
+    setGameSettings((prev) => ({
+      ...prev,
+      employeeNames: [...prev.employeeNames, ...randomNames],
+    }));
+  };
+
   const removeEmployee = (index: number) => {
     setGameSettings((prev) => ({
       ...prev,
       employeeNames: prev.employeeNames.filter((_, i) => i !== index),
+    }));
+  };
+
+  const clearAllEmployees = () => {
+    setGameSettings((prev) => ({
+      ...prev,
+      employeeNames: [],
     }));
   };
 
@@ -405,6 +428,48 @@ const SettingsScreen: React.FC<{
         {/* Employee Names */}
         <div className="setting-group">
           <label>👥 Çalışanlar ({gameSettings.employeeNames.length}/20):</label>
+
+          {/* Quick Generate Section */}
+          <div className="quick-generate-section">
+            <div className="employee-count-options">
+              <span className="count-label">Hızlı Ekle:</span>
+              <div className="count-buttons">
+                {[5, 10, 15, 20].map((count) => (
+                  <button
+                    key={count}
+                    onClick={() => generateRandomEmployees(count)}
+                    disabled={gameSettings.employeeNames.length + count > 20}
+                    className="count-btn"
+                  >
+                    {count}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="generate-buttons">
+              <button
+                onClick={() => generateRandomEmployees()}
+                disabled={gameSettings.employeeNames.length >= 20}
+                className="generate-employees-btn"
+              >
+                🎲{" "}
+                {gameSettings.employeeNames.length === 0
+                  ? "20 Çalışan Oluştur"
+                  : `${
+                      20 - gameSettings.employeeNames.length
+                    } Çalışan Daha Ekle`}
+              </button>
+              {gameSettings.employeeNames.length > 0 && (
+                <button
+                  onClick={clearAllEmployees}
+                  className="clear-employees-btn"
+                >
+                  🗑️ Temizle
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="employee-input">
             <input
               type="text"
@@ -425,12 +490,19 @@ const SettingsScreen: React.FC<{
             </button>
           </div>
           <div className="employee-list">
-            {gameSettings.employeeNames.map((name, index) => (
-              <div key={index} className="employee-item">
-                <span>{name}</span>
-                <button onClick={() => removeEmployee(index)}>❌</button>
+            {gameSettings.employeeNames.length > 0 ? (
+              gameSettings.employeeNames.map((name, index) => (
+                <div key={index} className="employee-item">
+                  <span>{name}</span>
+                  <button onClick={() => removeEmployee(index)}>❌</button>
+                </div>
+              ))
+            ) : (
+              <div className="no-employees">
+                Henüz çalışan eklenmedi. Yukarıdaki butonlarla hızlıca
+                ekleyebilirsiniz.
               </div>
-            ))}
+            )}
           </div>
         </div>
 
