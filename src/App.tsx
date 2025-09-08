@@ -879,28 +879,8 @@ function App() {
         }
       }, 1000);
 
-      // Initialize player state immediately when countdown starts
-      const initializePlayerState = async () => {
-        try {
-          const playerState = {
-            id: playerId,
-            name: gameSettings.bossName,
-            score: 0,
-            employeesHit: 0,
-            totalEmployees: currentLobby.settings.employeeCount,
-            finished: false,
-          };
-
-          console.log("Initializing player state:", playerState);
-          await updatePlayerGameState(currentLobby.id, playerId, playerState);
-          console.log("Player state initialized successfully");
-        } catch (error) {
-          console.error("Error initializing player state:", error);
-        }
-      };
-
-      // Initialize player state
-      initializePlayerState();
+      // Initialize player state when game actually starts (not during countdown)
+      // This will be handled by the existing useEffect that runs when gameStarted becomes true
 
       // Create employees based on lobby settings
       setGameSettings((prev) => ({
@@ -1591,16 +1571,26 @@ function App() {
 
   // Update multiplayer game state when score or progress changes
   useEffect(() => {
-    if (isMultiplayerGame && currentLobby && gameStarted) {
+    if (
+      isMultiplayerGame &&
+      currentLobby &&
+      (gameStarted || countdown !== null)
+    ) {
       const updatePlayerState = async () => {
         try {
           const playerState = {
             id: playerId,
             name: gameSettings.bossName,
-            score: score,
-            employeesHit: employees.filter((emp) => emp.hit).length,
-            totalEmployees: employees.length,
-            finished: allEmployeesHit,
+            score: countdown !== null ? 0 : score, // Use 0 during countdown
+            employeesHit:
+              countdown !== null
+                ? 0
+                : employees.filter((emp) => emp.hit).length, // Use 0 during countdown
+            totalEmployees:
+              countdown !== null
+                ? currentLobby.settings.employeeCount
+                : employees.length, // Use lobby settings during countdown
+            finished: countdown !== null ? false : allEmployeesHit, // Use false during countdown
             ...(allEmployeesHit && { finishTime: Date.now() }),
           };
 
@@ -1623,6 +1613,7 @@ function App() {
     currentLobby,
     playerId,
     gameSettings.bossName,
+    countdown,
   ]);
 
   // Play victory sound when all employees are hit
@@ -2511,17 +2502,37 @@ function App() {
 
                             // Reset lobby status to waiting for new game
                             if (currentLobby) {
+                              // Clear game state first
+                              const gameStateRef = ref(
+                                rtdb,
+                                `games/${currentLobby.id}`
+                              );
+                              set(gameStateRef, null);
+
                               // Reset lobby status to waiting for new game
                               const statusRef = ref(
                                 rtdb,
                                 `lobbies/${currentLobby.id}/status`
                               );
                               set(statusRef, "waiting");
+                              console.log("Lobby status reset to waiting");
 
-                              // Only reset ready status if not host (host stays ready)
-                              if (currentLobby.hostId !== playerId) {
-                                handleToggleReady(false);
+                              // Reset all players' ready status
+                              handleToggleReady(false);
+
+                              // If host, immediately set ready again
+                              if (currentLobby.hostId === playerId) {
+                                setTimeout(() => {
+                                  handleToggleReady(true);
+                                  console.log("Host ready status set to true");
+                                }, 200);
                               }
+
+                              // Force lobby refresh after a short delay
+                              setTimeout(() => {
+                                console.log("Refreshing lobby state...");
+                                // The lobby subscription will automatically update the state
+                              }, 500);
                             }
 
                             // Reset employees
