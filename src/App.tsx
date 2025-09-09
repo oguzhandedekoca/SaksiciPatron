@@ -567,6 +567,7 @@ function App() {
   const [jokerShots, setJokerShots] = useState(0); // Joker için kalan atış sayısı
   const [levelProgress, setLevelProgress] = useState(0); // Seviye ilerlemesi
   const [showLevelUp, setShowLevelUp] = useState(false); // Seviye atlama animasyonu
+  const [powerUpTimeLeft, setPowerUpTimeLeft] = useState(0); // Powerup kalan süre
   const [, setLeaderboard] = useState<
     { name: string; score: number; time: number }[]
   >([]);
@@ -875,8 +876,17 @@ function App() {
         "doubleShot", // Çift saksı atma
         "freeze", // Dondurma
       ];
+
+      // Check if any powerup of the same type already exists
+      const existingTypes = powerUps.map((p) => p.type);
+      const availableTypes = powerUpTypes.filter(
+        (type) => !existingTypes.includes(type)
+      );
+
+      if (availableTypes.length === 0) return; // Don't spawn if all types already exist
+
       const type =
-        powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)];
+        availableTypes[Math.floor(Math.random() * availableTypes.length)];
       const newPowerUp = {
         id: Date.now() + Math.random(),
         type,
@@ -886,6 +896,7 @@ function App() {
         collected: false,
         vx: (Math.random() - 0.5) * 2, // Hafif hareket
         vy: (Math.random() - 0.5) * 2,
+        spawnTime: Date.now(), // Track spawn time
       };
       setPowerUps((prev) => [...prev, newPowerUp]);
     }
@@ -907,9 +918,27 @@ function App() {
         break;
     }
 
+    // Set initial time left
+    setPowerUpTimeLeft(duration / 1000);
+
+    // Start countdown
+    const countdownInterval = setInterval(() => {
+      setPowerUpTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setActivePowerUp(null);
+          setJokerShots(0); // Reset joker shots
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     const timer = setTimeout(() => {
       setActivePowerUp(null);
       setJokerShots(0); // Reset joker shots
+      setPowerUpTimeLeft(0);
+      clearInterval(countdownInterval);
     }, duration);
     setPowerUpTimer(timer as unknown as number);
   };
@@ -1249,8 +1278,9 @@ function App() {
               finalVy = -finalVy * 0.8;
             }
 
-            // Auto-remove after 15 seconds
-            if (Date.now() - powerUp.id > 15000) {
+            // Auto-remove after 5-6 seconds
+            const lifetime = 5000 + Math.random() * 1000; // 5-6 seconds
+            if (Date.now() - powerUp.spawnTime > lifetime) {
               return { ...powerUp, active: false };
             }
 
@@ -1415,9 +1445,14 @@ function App() {
               const dy = pot.y - powerUp.y;
               const distance = dx * dx + dy * dy;
 
-              if (distance < 2500) {
-                // 50px collision radius
-                console.log("Powerup collected by pot:", powerUp.type);
+              if (distance < 4900) {
+                // 70px collision radius (70*70 = 4900)
+                console.log(
+                  "Powerup collected by pot:",
+                  powerUp.type,
+                  "Distance:",
+                  Math.sqrt(distance)
+                );
                 activatePowerUp(powerUp.type);
                 return currentPowerUps.map((p) =>
                   p.id === powerUp.id
@@ -1693,6 +1728,7 @@ function App() {
     setPowerUps([]);
     setActivePowerUp(null);
     setJokerShots(0);
+    setPowerUpTimeLeft(0);
     setLevel(1);
     setLevelProgress(0);
     setShowLevelUp(false);
@@ -2292,12 +2328,21 @@ function App() {
           animate={{ scale: 1 }}
           exit={{ scale: 0 }}
         >
-          🚀{" "}
-          {activePowerUp === "doubleShot"
-            ? `ÇİFT ATIŞ (${jokerShots} ATIŞ)`
-            : activePowerUp === "freeze"
-            ? "DONDURMA"
-            : "BİLİNMEYEN"}
+          <div className="power-up-info">
+            <div className="power-up-name">
+              🚀{" "}
+              {activePowerUp === "doubleShot"
+                ? `ÇİFT ATIŞ (${jokerShots} ATIŞ)`
+                : activePowerUp === "freeze"
+                ? "DONDURMA"
+                : "BİLİNMEYEN"}
+            </div>
+            <div className="power-up-timer">
+              <div className="timer-circle">
+                <div className="timer-text">{Math.ceil(powerUpTimeLeft)}</div>
+              </div>
+            </div>
+          </div>
         </motion.div>
       )}
 
@@ -2461,7 +2506,7 @@ function App() {
             <motion.div
               key={employee.id}
               className={`employee-simple ${
-                activePowerUp === "freeze" ? "frozen" : ""
+                activePowerUp === "freeze" && !employee.hit ? "frozen" : ""
               }`}
               style={{
                 left: employee.x,

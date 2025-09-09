@@ -200,7 +200,11 @@ export const getTopScores = async (limitCount: number = 10) => {
     console.log("Firebase: Collection reference created:", scoresRef);
 
     // Get more scores than needed to account for deduplication
-    const q = query(scoresRef, orderBy("score", "desc"), limit(limitCount * 3));
+    const q = query(
+      scoresRef,
+      orderBy("score", "desc"),
+      limit(limitCount * 10)
+    );
     console.log("Firebase: Query created:", q);
 
     const querySnapshot = await getDocs(q);
@@ -247,7 +251,7 @@ export const getTopScoresByTime = async (limitCount: number = 10) => {
   try {
     const scoresRef = collection(db, "scores");
     // Get more scores than needed to account for deduplication
-    const q = query(scoresRef, orderBy("time", "asc"), limit(limitCount * 3));
+    const q = query(scoresRef, orderBy("time", "asc"), limit(limitCount * 10));
     const querySnapshot = await getDocs(q);
 
     const allScores: PlayerScore[] = [];

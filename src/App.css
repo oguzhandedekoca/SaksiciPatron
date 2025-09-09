@@ -2652,6 +2652,12 @@ body.multiplayer-mode {
   cursor: pointer;
   transition: all 0.3s ease;
   z-index: 100;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .power-up:hover {
@@ -2660,7 +2666,7 @@ body.multiplayer-mode {
 }
 
 .power-up-icon {
-  font-size: 2rem;
+  font-size: 3rem;
   text-align: center;
   margin-bottom: 5px;
   animation: powerUpFloat 2s ease-in-out infinite;
@@ -2705,6 +2711,56 @@ body.multiplayer-mode {
   50% { 
     filter: hue-rotate(200deg) brightness(0.9) saturate(0.7) drop-shadow(0 0 10px #45b7aa);
   }
+}
+
+/* Power-up Timer Styles */
+.power-up-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.power-up-name {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.power-up-timer {
+  display: flex;
+  align-items: center;
+}
+
+.timer-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+  animation: timerPulse 1s ease-in-out infinite;
+}
+
+@keyframes timerPulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+  }
+  50% { 
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(255, 107, 107, 0.8);
+  }
+}
+
+.timer-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
 /* Power-up Pot Effects */
