@@ -1172,17 +1172,17 @@ function App() {
           if (emp.hit) return emp;
 
           // Power-up effects on employee movement
-          let movementSpeed = difficultySettings.movementSpeed;
-          let movementRange = difficultySettings.movementRange;
-
           if (activePowerUp === "freeze") {
             // Freeze employees completely
             return emp; // Don't move at all
           }
 
-          const time = Date.now() * movementSpeed;
-          const offsetX = Math.sin(time + emp.id) * movementRange;
-          const offsetY = Math.cos(time * 0.6 + emp.id) * (movementRange * 0.6);
+          const time = Date.now() * difficultySettings.movementSpeed;
+          const offsetX =
+            Math.sin(time + emp.id) * difficultySettings.movementRange;
+          const offsetY =
+            Math.cos(time * 0.6 + emp.id) *
+            (difficultySettings.movementRange * 0.6);
 
           return {
             ...emp,
@@ -1227,12 +1227,10 @@ function App() {
               finalVx = -Math.abs(pot.vx) * 0.8; // Bounce back with reduced speed
             }
 
-            // No special bounce effects for our simplified powerups
-
-            // Update trail
+            // Update trail less frequently for performance
             const newTrail = [
               { x: pot.x, y: pot.y },
-              ...pot.trail.slice(0, 4), // Keep last 5 positions
+              ...pot.trail.slice(0, 3), // Keep last 4 positions instead of 5
             ];
 
             // Boundary check
@@ -1256,48 +1254,49 @@ function App() {
           .filter((pot) => pot.active);
       });
 
-      // Update powerups movement and check pot collisions
-      setPowerUps((prevPowerUps) => {
-        return prevPowerUps
-          .map((powerUp) => {
-            if (!powerUp.active || powerUp.collected) return powerUp;
+      // Update powerups movement
+      if (Math.random() < 0.8) {
+        // 80% chance to update powerups each frame
+        setPowerUps((prevPowerUps) => {
+          return prevPowerUps
+            .map((powerUp) => {
+              if (!powerUp.active || powerUp.collected) return powerUp;
 
-            const newX = powerUp.x + (powerUp.vx || 0);
-            const newY = powerUp.y + (powerUp.vy || 0);
+              const newX = powerUp.x + (powerUp.vx || 0);
+              const newY = powerUp.y + (powerUp.vy || 0);
 
-            // Powerup movement only - collision detection moved to pot physics
+              // Bounce off screen edges
+              let finalX = newX;
+              let finalY = newY;
+              let finalVx = powerUp.vx || 0;
+              let finalVy = powerUp.vy || 0;
 
-            // Bounce off screen edges
-            let finalX = newX;
-            let finalY = newY;
-            let finalVx = powerUp.vx || 0;
-            let finalVy = powerUp.vy || 0;
+              if (newX < 50 || newX > window.innerWidth - 50) {
+                finalX = newX < 50 ? 50 : window.innerWidth - 50;
+                finalVx = -finalVx * 0.8;
+              }
+              if (newY < 50 || newY > window.innerHeight - 150) {
+                finalY = newY < 50 ? 50 : window.innerHeight - 150;
+                finalVy = -finalVy * 0.8;
+              }
 
-            if (newX < 50 || newX > window.innerWidth - 50) {
-              finalX = newX < 50 ? 50 : window.innerWidth - 50;
-              finalVx = -finalVx * 0.8;
-            }
-            if (newY < 50 || newY > window.innerHeight - 150) {
-              finalY = newY < 50 ? 50 : window.innerHeight - 150;
-              finalVy = -finalVy * 0.8;
-            }
+              // Auto-remove after 8-10 seconds
+              const lifetime = 8000 + Math.random() * 2000;
+              if (Date.now() - powerUp.spawnTime > lifetime) {
+                return { ...powerUp, active: false };
+              }
 
-            // Auto-remove after 8-10 seconds
-            const lifetime = 8000 + Math.random() * 2000; // 8-10 seconds
-            if (Date.now() - powerUp.spawnTime > lifetime) {
-              return { ...powerUp, active: false };
-            }
-
-            return {
-              ...powerUp,
-              x: finalX,
-              y: finalY,
-              vx: finalVx,
-              vy: finalVy,
-            };
-          })
-          .filter((powerUp) => powerUp.active && !powerUp.collected);
-      });
+              return {
+                ...powerUp,
+                x: finalX,
+                y: finalY,
+                vx: finalVx,
+                vy: finalVy,
+              };
+            })
+            .filter((powerUp) => powerUp.active && !powerUp.collected);
+        });
+      }
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -1430,11 +1429,9 @@ function App() {
     return () => cancelAnimationFrame(collisionAnimationId);
   }, [employees, bossControls, gameStarted]);
 
-  // Powerup collision detection with pots
+  // Powerup collision detection with pots - improved performance
   useEffect(() => {
     if (!gameStarted) return;
-
-    let collisionAnimationId: number;
 
     const checkPowerupCollisions = () => {
       // Get current state values
@@ -1445,6 +1442,10 @@ function App() {
             (powerUp) => powerUp.active && !powerUp.collected
           );
 
+          if (activePots.length === 0 || activePowerUps.length === 0) {
+            return currentPowerUps;
+          }
+
           let powerUpsToUpdate = [...currentPowerUps];
           let powerUpActivated = false;
 
@@ -1454,19 +1455,13 @@ function App() {
               const dy = pot.y - powerUp.y;
               const distance = dx * dx + dy * dy;
 
-              // Increased collision radius to 100px (100*100 = 10000)
-              if (distance < 10000 && !powerUpActivated) {
+              // Increased collision radius to 120px (120*120 = 14400)
+              if (distance < 14400 && !powerUpActivated) {
                 console.log(
                   "Powerup collected by pot:",
                   powerUp.type,
                   "Distance:",
-                  Math.sqrt(distance).toFixed(2),
-                  "Pot position:",
-                  pot.x.toFixed(2),
-                  pot.y.toFixed(2),
-                  "PowerUp position:",
-                  powerUp.x.toFixed(2),
-                  powerUp.y.toFixed(2)
+                  Math.sqrt(distance).toFixed(2)
                 );
                 activatePowerUp(powerUp.type);
                 powerUpsToUpdate = powerUpsToUpdate.map((p) =>
@@ -1474,7 +1469,7 @@ function App() {
                     ? { ...p, active: false, collected: true }
                     : p
                 );
-                powerUpActivated = true; // Prevent multiple activations in same frame
+                powerUpActivated = true;
                 break;
               }
             }
@@ -1484,12 +1479,10 @@ function App() {
         });
         return currentPots;
       });
-
-      collisionAnimationId = requestAnimationFrame(checkPowerupCollisions);
     };
 
-    collisionAnimationId = requestAnimationFrame(checkPowerupCollisions);
-    return () => cancelAnimationFrame(collisionAnimationId);
+    const interval = setInterval(checkPowerupCollisions, 16); // 60 FPS
+    return () => clearInterval(interval);
   }, [gameStarted]);
 
   // Improved power charging system
@@ -2686,9 +2679,9 @@ function App() {
             >
               <div className="power-up-icon">
                 {powerUp.type === "doubleShot"
-                  ? "🎯🎯"
+                  ? "🎯"
                   : powerUp.type === "freeze"
-                  ? "❄️❄️"
+                  ? "❄️"
                   : "❓"}
               </div>
               <div className="power-up-label">
