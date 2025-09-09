@@ -1929,8 +1929,8 @@ body.multiplayer-mode {
 /* Power-ups */
 .power-up {
   position: absolute;
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   background: linear-gradient(45deg, #ffd700, #ffed4e);
   border-radius: 50%;
   display: flex;
@@ -1939,11 +1939,13 @@ body.multiplayer-mode {
   justify-content: center;
   cursor: pointer;
   box-shadow: 
-    0 8px 20px rgba(255, 215, 0, 0.4),
-    0 0 20px rgba(255, 215, 0, 0.6);
-  border: 3px solid #ff6b6b;
+    0 8px 20px rgba(255, 215, 0, 0.6),
+    0 0 30px rgba(255, 215, 0, 0.8),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  border: 4px solid #ff6b6b;
+  border-style: double;
   z-index: 100;
-  animation: power-up-float 2s ease-in-out infinite;
+  animation: power-up-float 2s ease-in-out infinite, power-up-pulse 1.5s ease-in-out infinite;
 }
 
 .power-up:hover {
@@ -1958,16 +1960,38 @@ body.multiplayer-mode {
   50% { transform: translateY(-10px); }
 }
 
+@keyframes power-up-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 
+      0 8px 20px rgba(255, 215, 0, 0.6),
+      0 0 30px rgba(255, 215, 0, 0.8),
+      inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  }
+  50% { 
+    transform: scale(1.05);
+    box-shadow: 
+      0 12px 25px rgba(255, 215, 0, 0.8),
+      0 0 40px rgba(255, 215, 0, 1),
+      inset 0 2px 4px rgba(255, 255, 255, 0.4);
+  }
+}
+
 .power-up-icon {
-  font-size: 2rem;
-  margin-bottom: 2px;
+  font-size: 2.5rem;
+  margin-bottom: 4px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .power-up-label {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: bold;
-  color: #333;
-  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+  color: #fff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2px 6px;
+  border-radius: 8px;
+  letter-spacing: 0.5px;
 }
 
 /* Achievement Notification */
@@ -2702,6 +2726,8 @@ body.multiplayer-mode {
 .employee-simple.frozen {
   filter: hue-rotate(200deg) brightness(0.8) saturate(0.5);
   animation: freezeEffect 1s ease-in-out infinite;
+  pointer-events: none;
+  transform: scale(0.95) !important;
 }
 
 @keyframes freezeEffect {

@@ -832,7 +832,7 @@ function App() {
         unlockAchievement(`Seviye ${newLevel} Patronu!`);
 
         // Seviye atlama bonus powerup spawn
-        if (Math.random() < 0.8) {
+        if (Math.random() < 0.5) {
           spawnPowerUp();
         }
       }
@@ -871,7 +871,7 @@ function App() {
   // Power-up system
   const spawnPowerUp = () => {
     if (powerUps.length < 2 && Math.random() < 0.4) {
-      // 3-4 vuruşta bir çıkacak şekilde
+      // 2-3 vuruşta bir çıkacak şekilde, maksimum 2 PowerUp
       const powerUpTypes = [
         "doubleShot", // Çift saksı atma
         "freeze", // Dondurma
@@ -898,23 +898,25 @@ function App() {
         vy: (Math.random() - 0.5) * 2,
         spawnTime: Date.now(), // Track spawn time
       };
+      console.log("PowerUp spawned:", type, "at", newPowerUp.x, newPowerUp.y);
       setPowerUps((prev) => [...prev, newPowerUp]);
     }
   };
 
   const activatePowerUp = (type: string) => {
+    console.log("PowerUp activated:", type);
     setActivePowerUp(type);
     if (powerUpTimer) clearTimeout(powerUpTimer);
 
     // Different durations and effects for different powerups
-    let duration = 3000; // 3 seconds for both powerups
+    let duration = 5000; // 5 seconds for both powerups
     switch (type) {
       case "doubleShot":
-        duration = 3000; // 3 seconds for double shot
-        setJokerShots(6); // 6 atış hakkı (3 saniye boyunca 2li atış)
+        duration = 5000; // 5 seconds for double shot
+        setJokerShots(10); // 10 atış hakkı (5 saniye boyunca 2li atış)
         break;
       case "freeze":
-        duration = 3000; // 3 seconds for freeze
+        duration = 5000; // 5 seconds for freeze
         break;
     }
 
@@ -928,6 +930,7 @@ function App() {
           clearInterval(countdownInterval);
           setActivePowerUp(null);
           setJokerShots(0); // Reset joker shots
+          console.log("PowerUp expired:", type);
           return 0;
         }
         return prev - 1;
@@ -939,6 +942,7 @@ function App() {
       setJokerShots(0); // Reset joker shots
       setPowerUpTimeLeft(0);
       clearInterval(countdownInterval);
+      console.log("PowerUp timer expired:", type);
     }, duration);
     setPowerUpTimer(timer as unknown as number);
   };
@@ -1278,8 +1282,8 @@ function App() {
               finalVy = -finalVy * 0.8;
             }
 
-            // Auto-remove after 5-6 seconds
-            const lifetime = 5000 + Math.random() * 1000; // 5-6 seconds
+            // Auto-remove after 8-10 seconds
+            const lifetime = 8000 + Math.random() * 2000; // 8-10 seconds
             if (Date.now() - powerUp.spawnTime > lifetime) {
               return { ...powerUp, active: false };
             }
@@ -1361,8 +1365,8 @@ function App() {
                   unlockAchievement("Keskin Nişancı");
                 }
 
-                // Spawn power-up occasionally (40% chance - 3-4 vuruşta bir)
-                if (Math.random() < 0.4) {
+                // Spawn power-up occasionally (30% chance - 3-4 vuruşta bir)
+                if (Math.random() < 0.3) {
                   spawnPowerUp();
                 }
 
@@ -1430,6 +1434,8 @@ function App() {
   useEffect(() => {
     if (!gameStarted) return;
 
+    let collisionAnimationId: number;
+
     const checkPowerupCollisions = () => {
       // Get current state values
       setPots((currentPots) => {
@@ -1439,37 +1445,51 @@ function App() {
             (powerUp) => powerUp.active && !powerUp.collected
           );
 
+          let powerUpsToUpdate = [...currentPowerUps];
+          let powerUpActivated = false;
+
           for (const pot of activePots) {
             for (const powerUp of activePowerUps) {
               const dx = pot.x - powerUp.x;
               const dy = pot.y - powerUp.y;
               const distance = dx * dx + dy * dy;
 
-              if (distance < 4900) {
-                // 70px collision radius (70*70 = 4900)
+              // Increased collision radius to 100px (100*100 = 10000)
+              if (distance < 10000 && !powerUpActivated) {
                 console.log(
                   "Powerup collected by pot:",
                   powerUp.type,
                   "Distance:",
-                  Math.sqrt(distance)
+                  Math.sqrt(distance).toFixed(2),
+                  "Pot position:",
+                  pot.x.toFixed(2),
+                  pot.y.toFixed(2),
+                  "PowerUp position:",
+                  powerUp.x.toFixed(2),
+                  powerUp.y.toFixed(2)
                 );
                 activatePowerUp(powerUp.type);
-                return currentPowerUps.map((p) =>
+                powerUpsToUpdate = powerUpsToUpdate.map((p) =>
                   p.id === powerUp.id
                     ? { ...p, active: false, collected: true }
                     : p
                 );
+                powerUpActivated = true; // Prevent multiple activations in same frame
+                break;
               }
             }
+            if (powerUpActivated) break;
           }
-          return currentPowerUps;
+          return powerUpsToUpdate;
         });
         return currentPots;
       });
+
+      collisionAnimationId = requestAnimationFrame(checkPowerupCollisions);
     };
 
-    const interval = setInterval(checkPowerupCollisions, 16); // 60 FPS
-    return () => clearInterval(interval);
+    collisionAnimationId = requestAnimationFrame(checkPowerupCollisions);
+    return () => cancelAnimationFrame(collisionAnimationId);
   }, [gameStarted]);
 
   // Improved power charging system
@@ -1596,9 +1616,9 @@ function App() {
 
     setPots((prev) => [...prev, newPot]);
 
-    // If doubleShot is active and has shots remaining, create a second pot with slight angle variation
+    // If doubleShot is active and has shots remaining, create a second pot with wider angle variation
     if (activePowerUp === "doubleShot" && jokerShots > 0) {
-      const jokerAngle = angle + (Math.random() - 0.5) * 0.3; // ±0.15 radian variation
+      const jokerAngle = angle + (Math.random() - 0.5) * 0.8; // ±0.4 radian variation (wider spread)
       const jokerVx = Math.cos(jokerAngle) * totalPower;
       const jokerVy = Math.sin(jokerAngle) * totalPower;
 
@@ -2666,17 +2686,17 @@ function App() {
             >
               <div className="power-up-icon">
                 {powerUp.type === "doubleShot"
-                  ? "🎯"
+                  ? "🎯🎯"
                   : powerUp.type === "freeze"
-                  ? "❄️"
+                  ? "❄️❄️"
                   : "❓"}
               </div>
               <div className="power-up-label">
                 {powerUp.type === "doubleShot"
-                  ? "Çift Atış"
+                  ? "ÇİFT ATIŞ"
                   : powerUp.type === "freeze"
-                  ? "Dondur"
-                  : "Bilinmeyen"}
+                  ? "DONDUR"
+                  : "BİLİNMEYEN"}
               </div>
             </motion.div>
           ))}
