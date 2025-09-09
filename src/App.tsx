@@ -1604,7 +1604,7 @@ function App() {
       active: true,
       trail: [],
       isJoker: activePowerUp === "joker", // Mark as joker pot
-      powerUpType: activePowerUp, // Store powerup type for visual effects
+      powerUpType: activePowerUp || undefined, // Store powerup type for visual effects
     };
 
     setPots((prev) => [...prev, newPot]);
