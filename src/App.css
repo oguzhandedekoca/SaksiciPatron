@@ -117,6 +117,8 @@ body.multiplayer-mode {
   min-width: 100vw;
   will-change: scroll-position;
   transform: translateZ(0);
+  contain: layout style paint; /* CSS containment for better performance */
+  isolation: isolate; /* Create new stacking context */
 }
 
 .instructions {
@@ -231,6 +233,9 @@ body.multiplayer-mode {
   flex-direction: column;
   align-items: center;
   pointer-events: none;
+  will-change: transform;
+  transform: translateZ(0); /* Force hardware acceleration */
+  contain: layout style paint; /* CSS containment for better performance */
 }
 
 .employee-emoji {
@@ -312,6 +317,8 @@ body.multiplayer-mode {
   margin-top: 5px;
   will-change: transform;
   backface-visibility: hidden;
+  transform: translateZ(0); /* Force hardware acceleration */
+  contain: layout style paint; /* CSS containment for better performance */
 }
 
 .employee-body {
@@ -416,6 +423,8 @@ body.multiplayer-mode {
   filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.4));
   will-change: transform;
   backface-visibility: hidden;
+  transform: translateZ(0); /* Force hardware acceleration */
+  contain: layout style paint; /* CSS containment for better performance */
 }
 
 .pot:hover {
@@ -435,6 +444,9 @@ body.multiplayer-mode {
   border-radius: 50%;
   pointer-events: none;
   z-index: 70;
+  will-change: transform;
+  transform: translateZ(0); /* Force hardware acceleration */
+  contain: layout style paint; /* CSS containment for better performance */
 }
 
 /* Confetti */
@@ -447,6 +459,8 @@ body.multiplayer-mode {
   pointer-events: none;
   z-index: 1500;
   overflow: hidden;
+  contain: layout style paint; /* CSS containment for better performance */
+  isolation: isolate; /* Create new stacking context */
 }
 
 .confetti-piece {
@@ -465,6 +479,9 @@ body.multiplayer-mode {
   box-shadow: 
     0 0 20px rgba(255, 107, 107, 0.6),
     inset 0 0 20px rgba(255, 107, 107, 0.2);
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Force hardware acceleration */
+  contain: layout style paint; /* CSS containment for better performance */
 }
 
 /* Screen Shake */

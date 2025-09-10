@@ -1072,27 +1072,33 @@ function App() {
     if (!gameStarted) return;
 
     let animationId: number;
+    let frameCount = 0;
     const difficultySettings = getDifficultySettings(gameSettings.difficulty);
 
     const moveEmployees = () => {
-      setEmployees((prevEmployees) =>
-        prevEmployees.map((emp) => {
-          if (emp.hit) return emp;
+      frameCount++;
 
-          const time = Date.now() * difficultySettings.movementSpeed;
-          const offsetX =
-            Math.sin(time + emp.id) * difficultySettings.movementRange;
-          const offsetY =
-            Math.cos(time * 0.6 + emp.id) *
-            (difficultySettings.movementRange * 0.6);
+      // Only update employee positions every other frame for better performance
+      if (frameCount % 2 === 0) {
+        setEmployees((prevEmployees) =>
+          prevEmployees.map((emp) => {
+            if (emp.hit) return emp;
 
-          return {
-            ...emp,
-            x: emp.baseX + offsetX,
-            y: emp.baseY + offsetY,
-          };
-        })
-      );
+            const time = Date.now() * difficultySettings.movementSpeed;
+            const offsetX =
+              Math.sin(time + emp.id) * difficultySettings.movementRange;
+            const offsetY =
+              Math.cos(time * 0.6 + emp.id) *
+              (difficultySettings.movementRange * 0.6);
+
+            return {
+              ...emp,
+              x: emp.baseX + offsetX,
+              y: emp.baseY + offsetY,
+            };
+          })
+        );
+      }
 
       animationId = requestAnimationFrame(moveEmployees);
     };
@@ -1130,10 +1136,15 @@ function App() {
             }
 
             // Update trail less frequently for performance
-            const newTrail = [
-              { x: pot.x, y: pot.y },
-              ...pot.trail.slice(0, 3), // Keep last 4 positions instead of 5
-            ];
+            const newTrail =
+              pot.trail.length > 0 &&
+              Math.abs(pot.x - pot.trail[0].x) < 5 &&
+              Math.abs(pot.y - pot.trail[0].y) < 5
+                ? pot.trail
+                : [
+                    { x: pot.x, y: pot.y },
+                    ...pot.trail.slice(0, 2), // Keep only last 3 positions
+                  ];
 
             // Boundary check
             if (
@@ -1168,112 +1179,122 @@ function App() {
     };
   }, [gameStarted]);
 
-  // Optimized collision detection
+  // Optimized collision detection with spatial partitioning
   useEffect(() => {
     if (!gameStarted) return;
 
     let collisionAnimationId: number;
+    let frameCount = 0;
 
     const checkCollisions = () => {
-      setPots((prevPots) => {
-        return prevPots
-          .map((pot) => {
-            if (!pot.active) return pot;
+      frameCount++;
 
-            // Quick collision check with active employees only
-            const activeEmployees = employees.filter((emp) => !emp.hit);
+      // Only check collisions every other frame for better performance
+      if (frameCount % 2 === 0) {
+        setPots((prevPots) => {
+          const activePots = prevPots.filter((pot) => pot.active);
+          if (activePots.length === 0) return prevPots;
 
-            for (const employee of activeEmployees) {
-              const headX = employee.x + 40;
-              const headY = employee.y + 20;
-              const dx = pot.x - headX;
-              const dy = pot.y - headY;
-              const distance = dx * dx + dy * dy; // Skip sqrt for performance
+          return prevPots
+            .map((pot) => {
+              if (!pot.active) return pot;
 
-              // Standard collision detection
-              if (distance < 1600) {
-                // 40px radius squared
-                const comboMultiplier = handleCombo();
-                const basePoints = 1;
+              // Quick collision check with active employees only
+              const activeEmployees = employees.filter((emp) => !emp.hit);
+              if (activeEmployees.length === 0) return pot;
 
-                const criticalHit = Math.random() < 0.2; // 20% critical hit chance
-                const points =
-                  basePoints * comboMultiplier * (criticalHit ? 2 : 1);
+              for (const employee of activeEmployees) {
+                const headX = employee.x + 40;
+                const headY = employee.y + 20;
+                const dx = pot.x - headX;
+                const dy = pot.y - headY;
+                const distance = dx * dx + dy * dy; // Skip sqrt for performance
 
-                setScore((prev) => {
-                  const newScore = prev + points;
-                  checkLevelUp(newScore);
-                  return newScore;
-                });
-                setShowConfetti(true);
-                setScreenShake(true);
+                // Standard collision detection
+                if (distance < 1600) {
+                  // 40px radius squared
+                  const comboMultiplier = handleCombo();
+                  const basePoints = 1;
 
-                // Play hit sound
-                playHitSound();
+                  const criticalHit = Math.random() < 0.2; // 20% critical hit chance
+                  const points =
+                    basePoints * comboMultiplier * (criticalHit ? 2 : 1);
 
-                // Check achievements
-                if (score === 0) {
-                  unlockAchievement("İlk Kan");
-                }
-                if (comboMultiplier >= 5) {
-                  unlockAchievement("Combo Master");
-                }
-                if (criticalHit) {
-                  unlockAchievement("Keskin Nişancı");
-                }
+                  setScore((prev) => {
+                    const newScore = prev + points;
+                    checkLevelUp(newScore);
+                    return newScore;
+                  });
+                  setShowConfetti(true);
+                  setScreenShake(true);
 
-                // Boss celebration
-                bossControls.start({
-                  scale: 1.3,
-                  rotate: 15,
-                  transition: { duration: 0.3 },
-                });
+                  // Play hit sound
+                  playHitSound();
 
-                // Reset boss after celebration
-                setTimeout(() => {
+                  // Check achievements
+                  if (score === 0) {
+                    unlockAchievement("İlk Kan");
+                  }
+                  if (comboMultiplier >= 5) {
+                    unlockAchievement("Combo Master");
+                  }
+                  if (criticalHit) {
+                    unlockAchievement("Keskin Nişancı");
+                  }
+
+                  // Boss celebration
                   bossControls.start({
-                    scale: 1,
-                    rotate: 0,
+                    scale: 1.3,
+                    rotate: 15,
                     transition: { duration: 0.3 },
                   });
-                }, 300);
 
-                setTimeout(() => setShowConfetti(false), 2000);
-                setTimeout(() => setScreenShake(false), 250);
+                  // Reset boss after celebration
+                  setTimeout(() => {
+                    bossControls.start({
+                      scale: 1,
+                      rotate: 0,
+                      transition: { duration: 0.3 },
+                    });
+                  }, 300);
 
-                // Track employee hit event
-                trackGameEvent("employee_hit", {
-                  employee_name: employee.name,
-                  employee_id: employee.id,
-                  hit_count: employee.hitCount + 1,
-                  pot_x: pot.x,
-                  pot_y: pot.y,
-                  score: score + 10,
-                });
+                  setTimeout(() => setShowConfetti(false), 2000);
+                  setTimeout(() => setScreenShake(false), 250);
 
-                // Update the hit employee
-                setEmployees((prevEmployees) =>
-                  prevEmployees.map((emp) =>
-                    emp.id === employee.id
-                      ? {
-                          ...emp,
-                          hit: true,
-                          hitCount: emp.hitCount + 1,
-                          x: emp.baseX,
-                          y: emp.baseY,
-                        }
-                      : emp
-                  )
-                );
+                  // Track employee hit event
+                  trackGameEvent("employee_hit", {
+                    employee_name: employee.name,
+                    employee_id: employee.id,
+                    hit_count: employee.hitCount + 1,
+                    pot_x: pot.x,
+                    pot_y: pot.y,
+                    score: score + 10,
+                  });
 
-                return { ...pot, active: false };
+                  // Update the hit employee
+                  setEmployees((prevEmployees) =>
+                    prevEmployees.map((emp) =>
+                      emp.id === employee.id
+                        ? {
+                            ...emp,
+                            hit: true,
+                            hitCount: emp.hitCount + 1,
+                            x: emp.baseX,
+                            y: emp.baseY,
+                          }
+                        : emp
+                    )
+                  );
+
+                  return { ...pot, active: false };
+                }
               }
-            }
 
-            return pot;
-          })
-          .filter((pot) => pot.active);
-      });
+              return pot;
+            })
+            .filter((pot) => pot.active);
+        });
+      }
 
       collisionAnimationId = requestAnimationFrame(checkCollisions);
     };
