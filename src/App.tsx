@@ -549,10 +549,6 @@ function App() {
     }
   }, []);
 
-  // Debug gameStarted state changes
-  useEffect(() => {
-    console.log("gameStarted state changed:", gameStarted);
-  }, [gameStarted]);
   const [combo, setCombo] = useState(0);
   const [comboTimer, setComboTimer] = useState<number | null>(null);
   const [achievements, setAchievements] = useState<string[]>([]);
@@ -647,7 +643,7 @@ function App() {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.1);
     } catch {
-      console.log("Audio not supported");
+      // Audio not supported
     }
   };
 
@@ -675,7 +671,7 @@ function App() {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
     } catch {
-      console.log("Audio not supported");
+      // Audio not supported
     }
   };
 
@@ -711,7 +707,7 @@ function App() {
         oscillator.stop(audioContext.currentTime + 0.2 + i * 0.05);
       }
     } catch {
-      console.log("Audio not supported");
+      // Audio not supported
     }
   };
 
@@ -757,7 +753,7 @@ function App() {
         oscillator.stop(audioContext.currentTime + note.time + 0.3);
       });
     } catch {
-      console.log("Audio not supported");
+      // Audio not supported
     }
   };
 
@@ -786,7 +782,7 @@ function App() {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.2);
     } catch {
-      console.log("Audio not supported");
+      // Audio not supported
     }
   };
 
@@ -860,12 +856,9 @@ function App() {
   const loadGlobalLeaderboard = async () => {
     setIsLoadingScores(true);
     try {
-      console.log("Loading global leaderboard...");
-
       // Clean up duplicate scores first (only run occasionally to avoid performance issues)
       const shouldCleanup = Math.random() < 0.1; // 10% chance to run cleanup
       if (shouldCleanup) {
-        console.log("Running duplicate score cleanup...");
         try {
           await cleanupDuplicateScores();
         } catch (cleanupError) {
@@ -877,7 +870,6 @@ function App() {
       }
 
       const topScores = await getTopScores(10);
-      console.log("Top scores loaded:", topScores);
       setGlobalLeaderboard(topScores);
     } catch (error) {
       console.error("Error loading leaderboard:", error);
@@ -891,9 +883,7 @@ function App() {
   const loadVictoryLeaderboard = async () => {
     setIsLoadingVictoryLeaderboard(true);
     try {
-      console.log("Loading victory leaderboard...");
       const topScores = await getTopScores(10);
-      console.log("Victory top scores loaded:", topScores);
       setVictoryLeaderboard(topScores);
     } catch (error) {
       console.error("Error loading victory leaderboard:", error);
@@ -906,7 +896,6 @@ function App() {
 
   const saveScoreToFirebase = async () => {
     if (!gameSettings.bossName.trim()) {
-      console.log("No boss name, skipping Firebase save");
       return;
     }
 
@@ -923,9 +912,7 @@ function App() {
         playerCount: gameSettings.employeeNames.length,
       };
 
-      console.log("App: Attempting to save score to Firebase:", playerData);
       await savePlayerScore(playerData);
-      console.log("App: Score saved to Firebase successfully!");
     } catch (error) {
       console.error("App: Error saving score to Firebase:", error);
     }
@@ -948,10 +935,6 @@ function App() {
   // Listen to lobby status changes for multiplayer
   useEffect(() => {
     if (currentLobby && currentLobby.status === "starting" && !gameStarted) {
-      console.log(
-        "Lobby status changed to starting, initializing multiplayer game..."
-      );
-
       setIsMultiplayerGame(true);
       setShowLobby(false);
 
@@ -963,17 +946,14 @@ function App() {
       let countdownValue = 3;
       const countdownInterval = setInterval(() => {
         countdownValue--;
-        console.log("Countdown tick:", countdownValue);
 
         if (countdownValue > 0) {
           setCountdown(countdownValue);
         } else {
-          console.log("Countdown finished, starting game...");
           clearInterval(countdownInterval);
           setCountdown(null);
 
           // Start actual game
-          console.log("Starting multiplayer game...");
           setGameStarted(true);
           setGameStartTime(Date.now());
           setGameTimer(0);
@@ -983,8 +963,6 @@ function App() {
             setGameTimer((prev) => prev + 1);
           }, 1000);
           setTimerInterval(gameInterval);
-
-          console.log("Multiplayer game started successfully");
         }
       }, 1000);
 
@@ -1003,11 +981,6 @@ function App() {
 
       // Subscribe to game state
       const unsubscribe = subscribeGameState(currentLobby.id, (gameState) => {
-        console.log("Game state updated:", JSON.stringify(gameState, null, 2));
-        console.log(
-          "Players in game state:",
-          JSON.stringify(gameState?.players, null, 2)
-        );
         setCurrentGameState(gameState);
       });
 
@@ -1057,12 +1030,7 @@ function App() {
   // Create employees for multiplayer when game settings change
   useEffect(() => {
     if (isMultiplayerGame && gameSettings.employeeNames.length > 0) {
-      console.log(
-        "Creating employees for multiplayer:",
-        gameSettings.employeeNames.length
-      );
       const newEmployees = createEmployeesFromSettings();
-      console.log("Created employees:", newEmployees);
       setEmployees(newEmployees);
     }
   }, [isMultiplayerGame, gameSettings.employeeNames.length]);
@@ -1121,14 +1089,14 @@ function App() {
             const newY = pot.y + pot.vy;
 
             // Power-up effects on gravity
-            let gravity = 0.3; // Default gravity
+            const gravity = 0.3; // Default gravity
 
             const newVy = pot.vy + gravity;
 
             // Multiplayer mode: Bounce off center line
             let finalX = newX;
             let finalVx = pot.vx;
-            let finalVy = newVy;
+            const finalVy = newVy;
 
             if (isMultiplayerGame && newX > window.innerWidth / 2) {
               finalX = window.innerWidth / 2 - (newX - window.innerWidth / 2);
@@ -1403,8 +1371,8 @@ function App() {
     const deltaY = targetY - startY;
 
     const angle = Math.atan2(deltaY, deltaX);
-    let basePower = 12;
-    let powerBonus = powerLevel * 18; // More balanced power scaling
+    const basePower = 12;
+    const powerBonus = powerLevel * 18; // More balanced power scaling
 
     // No special power effects for our simplified powerups
 
@@ -1602,9 +1570,7 @@ function App() {
   const loadAvailableLobbies = async () => {
     setIsLoadingLobbies(true);
     try {
-      console.log("Loading available lobbies...");
       const lobbies = await getAvailableLobbies();
-      console.log("Loaded lobbies:", lobbies);
       setAvailableLobbies(lobbies);
     } catch (error) {
       console.error("Error loading lobbies:", error);
@@ -1615,7 +1581,6 @@ function App() {
 
   // Manual lobby refresh only - no automatic refresh
   const refreshLobbyList = () => {
-    console.log("Manual lobby refresh requested");
     loadAvailableLobbies();
   };
 
@@ -1627,26 +1592,22 @@ function App() {
     }
 
     try {
-      console.log("Creating lobby...");
       const lobbyId = await createLobby(
         playerId,
         gameSettings.bossName.trim(),
         lobbyName.trim() || undefined
       );
-      console.log("Lobby created with ID:", lobbyId);
 
       setShowJoinLobby(false);
       setShowLobby(true);
 
       // Refresh the lobby list to show the new lobby (for other players)
       setTimeout(() => {
-        console.log("Refreshing lobby list after creation...");
         loadAvailableLobbies();
       }, 2000); // Delay to ensure lobby is saved
 
       // Subscribe to lobby updates
       const unsubscribe = subscribeLobby(lobbyId, (lobby) => {
-        console.log("Lobby updated:", lobby);
         setCurrentLobby(lobby);
       });
 
@@ -1727,11 +1688,7 @@ function App() {
   const handleStartMultiplayerGame = async () => {
     if (currentLobby && currentLobby.hostId === playerId) {
       try {
-        console.log("Starting multiplayer game...");
         await startMultiplayerGame(currentLobby.id, currentLobby.settings);
-
-        // Host just triggers the game start, the useEffect will handle the rest
-        console.log("Game start triggered by host");
       } catch (error) {
         console.error("Error starting multiplayer game:", error);
         alert("Oyun başlatılırken hata oluştu!");
@@ -1767,9 +1724,7 @@ function App() {
             ...(allEmployeesHit && { finishTime: Date.now() }),
           };
 
-          console.log("Updating player state:", playerState);
           await updatePlayerGameState(currentLobby.id, playerId, playerState);
-          console.log("Player state updated successfully");
         } catch (error) {
           console.error("Error updating player state:", error);
         }
@@ -1829,7 +1784,6 @@ function App() {
             .sort((a, b) => b.score - a.score)
             .slice(0, 10); // Keep top 10
           localStorage.setItem("saksici-leaderboard", JSON.stringify(updated));
-          console.log("Local leaderboard updated:", updated);
           return updated;
         });
 
@@ -2023,20 +1977,8 @@ function App() {
               {currentGameState &&
                 currentGameState.players &&
                 (() => {
-                  console.log(
-                    "Current game state players:",
-                    JSON.stringify(currentGameState.players, null, 2)
-                  );
                   const players = Object.values(currentGameState.players);
-                  console.log(
-                    "Players array:",
-                    JSON.stringify(players, null, 2)
-                  );
                   const opponent = players.find((p) => p.id !== playerId);
-                  console.log(
-                    "Opponent found:",
-                    JSON.stringify(opponent, null, 2)
-                  );
 
                   if (opponent) {
                     return (
@@ -2677,7 +2619,6 @@ function App() {
                                 `lobbies/${currentLobby.id}/status`
                               );
                               set(statusRef, "waiting");
-                              console.log("Lobby status reset to waiting");
 
                               // Reset all players' ready status
                               handleToggleReady(false);
@@ -2686,15 +2627,8 @@ function App() {
                               if (currentLobby.hostId === playerId) {
                                 setTimeout(() => {
                                   handleToggleReady(true);
-                                  console.log("Host ready status set to true");
                                 }, 200);
                               }
-
-                              // Force lobby refresh after a short delay
-                              setTimeout(() => {
-                                console.log("Refreshing lobby state...");
-                                // The lobby subscription will automatically update the state
-                              }, 500);
                             }
 
                             // Reset employees
