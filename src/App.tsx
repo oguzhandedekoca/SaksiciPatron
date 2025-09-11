@@ -861,18 +861,15 @@ function App() {
       if (shouldCleanup) {
         try {
           await cleanupDuplicateScores();
-        } catch (cleanupError) {
-          console.warn(
-            "Cleanup failed, continuing with leaderboard load:",
-            cleanupError
-          );
+        } catch {
+          // Error cleaning up duplicate scores
         }
       }
 
       const topScores = await getTopScores(10);
       setGlobalLeaderboard(topScores);
-    } catch (error) {
-      console.error("Error loading leaderboard:", error);
+    } catch {
+      // Error loading leaderboard
       // Show error message to user
       alert("Liderlik tablosu yüklenirken hata oluştu. Lütfen tekrar deneyin.");
     } finally {
@@ -885,8 +882,8 @@ function App() {
     try {
       const topScores = await getTopScores(10);
       setVictoryLeaderboard(topScores);
-    } catch (error) {
-      console.error("Error loading victory leaderboard:", error);
+    } catch {
+      // Error loading victory leaderboard
       // Fallback to local leaderboard if Firebase fails
       setVictoryLeaderboard([]);
     } finally {
@@ -913,8 +910,8 @@ function App() {
       };
 
       await savePlayerScore(playerData);
-    } catch (error) {
-      console.error("App: Error saving score to Firebase:", error);
+    } catch {
+      // Error saving score to Firebase
     }
   };
 
@@ -1572,8 +1569,8 @@ function App() {
     try {
       const lobbies = await getAvailableLobbies();
       setAvailableLobbies(lobbies);
-    } catch (error) {
-      console.error("Error loading lobbies:", error);
+    } catch {
+      // Error loading lobbies
     } finally {
       setIsLoadingLobbies(false);
     }
@@ -1612,8 +1609,8 @@ function App() {
       });
 
       return unsubscribe;
-    } catch (error) {
-      console.error("Error creating lobby:", error);
+    } catch {
+      // Error creating lobby
       alert("Lobi oluşturulurken hata oluştu!");
     }
   };
@@ -1643,8 +1640,8 @@ function App() {
       } else {
         alert("Lobiye katılınamadı!");
       }
-    } catch (error) {
-      console.error("Error joining lobby:", error);
+    } catch {
+      // Error joining lobby
       alert("Lobiye katılırken hata oluştu!");
     }
   };
@@ -1659,8 +1656,8 @@ function App() {
 
         // Remove multiplayer mode class from body
         document.body.classList.remove("multiplayer-mode");
-      } catch (error) {
-        console.error("Error leaving lobby:", error);
+      } catch {
+        // Error leaving lobby
       }
     }
   };
@@ -1669,8 +1666,8 @@ function App() {
     if (currentLobby) {
       try {
         await updateLobbySettings(currentLobby.id, settings);
-      } catch (error) {
-        console.error("Error updating lobby settings:", error);
+      } catch {
+        // Error updating lobby settings
       }
     }
   };
@@ -1679,8 +1676,8 @@ function App() {
     if (currentLobby) {
       try {
         await setPlayerReady(currentLobby.id, playerId, ready);
-      } catch (error) {
-        console.error("Error setting ready status:", error);
+      } catch {
+        // Error setting ready status
       }
     }
   };
@@ -1689,8 +1686,8 @@ function App() {
     if (currentLobby && currentLobby.hostId === playerId) {
       try {
         await startMultiplayerGame(currentLobby.id, currentLobby.settings);
-      } catch (error) {
-        console.error("Error starting multiplayer game:", error);
+      } catch {
+        // Error starting multiplayer game
         alert("Oyun başlatılırken hata oluştu!");
       }
     }
@@ -1725,8 +1722,8 @@ function App() {
           };
 
           await updatePlayerGameState(currentLobby.id, playerId, playerState);
-        } catch (error) {
-          console.error("Error updating player state:", error);
+        } catch {
+          // Error updating player state
         }
       };
 
